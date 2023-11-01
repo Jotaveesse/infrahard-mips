@@ -31,7 +31,6 @@ function compile(source) {
     }
     // console.log(token != null ? token.text : null, token != null ? findKeyByValue(TokenType, token.kind) : null);
     console.log('tokens: ', tokens);
-    outputTextArea.value = source;
 
     parse(tokens);
 }
@@ -91,6 +90,11 @@ function parse(sentence) {
     const T9 = new Nonterminal('T9');
     const T10 = new Nonterminal('T10');
     const T11 = new Nonterminal('T11');
+
+    
+    const RS = new Nonterminal('RS');
+    const RT = new Nonterminal('RT');
+    const RD = new Nonterminal('RD');
 
     const terminals = {};
 
@@ -183,17 +187,20 @@ function parse(sentence) {
 
 
         new Rule(T1, [EPSILON]),
-        new Rule(T2, [terminals.REG]),
-        new Rule(T3, [terminals.REG]),
-        new Rule(T4, [terminals.REG, terminals.COMMA, terminals.REG]),
-        new Rule(T5, [terminals.REG, terminals.COMMA, terminals.REG, terminals.COMMA, terminals.REG]),
+        new Rule(T2, [RS]),
+        new Rule(T3, [RD]),
+        new Rule(T4, [RS, terminals.COMMA, RT]),
+        new Rule(T5, [RD, terminals.COMMA, RS, terminals.COMMA, RT]),
         new Rule(T6, [terminals.NUMBER]),
-        new Rule(T7, [terminals.REG, terminals.COMMA, terminals.NUMBER]),
-        new Rule(T8, [terminals.REG, terminals.COMMA, terminals.REG, terminals.COMMA, terminals.NUMBER]),
-        new Rule(T9, [terminals.REG, terminals.COMMA, terminals.REG, terminals.COMMA, terminals.NUMBER]),
-        new Rule(T10, [terminals.REG, terminals.COMMA, terminals.REG, terminals.COMMA, terminals.NUMBER]),
-        new Rule(T11, [terminals.REG, terminals.COMMA, terminals.NUMBER, terminals.L_PAREN, terminals.REG, terminals.R_PAREN]),
+        new Rule(T7, [RT, terminals.COMMA, terminals.NUMBER]),
+        new Rule(T8, [RD, terminals.COMMA, RT, terminals.COMMA, terminals.NUMBER]),
+        new Rule(T9, [RS, terminals.COMMA, RT, terminals.COMMA, terminals.NUMBER]),
+        new Rule(T10, [RT, terminals.COMMA, RS, terminals.COMMA, terminals.NUMBER]),
+        new Rule(T11, [RT, terminals.COMMA, terminals.NUMBER, terminals.L_PAREN, RS, terminals.R_PAREN]),
 
+        new Rule(RS, [terminals.REG]),
+        new Rule(RT, [terminals.REG]),
+        new Rule(RD, [terminals.REG]),
 
 
         //new Rule(ADD, [terminals.ADD, terminals.REG, terminals.COMMA, terminals.REG, terminals.COMMA, terminals.REG]),
@@ -210,7 +217,11 @@ function parse(sentence) {
 
     console.log(grammar.checkIfLL1());
     console.log('parsing table: ', grammar.parsingTable);
-    console.log(grammar.parse(sentence));
+    const parsedTree = grammar.parse(sentence);
+    console.log(parsedTree);
+    const binary = convert(parsedTree.root);
+    outputTextArea.value = binary;
+
 }
 
 function findKeyByValue(object, value) {

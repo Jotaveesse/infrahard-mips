@@ -267,7 +267,7 @@ class Grammar {
                             this.parsingTable[prod.nonterminal.name][firstTerminal.name].push(prod.production);
                         }
                     }
-                    else{
+                    else {
                         for (const followTerminal of this.followSet[prod.nonterminal]) {
                             //console.log(prod.nonterminal, followTerminal, prod.production)
                             //console.log('table: ', this.parsingTable)
@@ -295,13 +295,17 @@ class Grammar {
 
     parse(sentence) {
         if (!this.checkIfLL1()) {
-            return 'Erro, gramática não é LL(1)!';
+            console.log('Erro, gramática não é LL(1)!');
+            return null;
         } else {
+
             const size = sentence.length;
             let i = 0;
             const stack = [EOF, this.startSymbol];
             let currToken = sentence[i];
             let stackTop = stack[stack.length - 1];
+
+            const parseTree = new ParseTree(this.startSymbol);
 
             while (stackTop !== EOF) {
                 //console.log(sentence)
@@ -312,43 +316,68 @@ class Grammar {
                         // remove ultimo elemento da pilha e vai pro proximo token
                         stack.pop();
                         i++;
+
+                        console.log( parseTree.root.findRightmostEmptyTerminal())
+                        parseTree.root.findRightmostEmptyTerminal().value=currToken.text;
+
                         if (i < size) {
                             currToken = sentence[i];
                         } else {
                             currToken = TokenType.map.EOF;
                         }
+                        
                     } else {
-                        return `Erro sintático, esperava por ${TokenType.revMap[stackTop.name]} e apareceu ${TokenType.revMap[currToken.kind]} na posição ${i}`;
+                        console.log(`Erro sintático, esperava por ${TokenType.revMap[stackTop.name]} e apareceu ${TokenType.revMap[currToken.kind]} na posição ${i}`);
+                        return null;
                     }
                 }
 
                 else if (stackTop instanceof Nonterminal) {
                     //caso nao tenha nenhuma regra para essa combinação de terminal e nao terminal
                     if (this.parsingTable[stackTop][currToken.kind].length === 0) {
-                        return `Erro sintático, caractere inesperado para resolver não-terminal ${stackTop.name}: ${TokenType.revMap[currToken.kind]} na posição ${i}`;
+                        console.log(`Erro sintático, caractere inesperado para resolver não-terminal ${stackTop.name}: ${TokenType.revMap[currToken.kind]} na posição ${i}`);
+                        return null;
                     }
                     else if (this.parsingTable[stackTop][currToken.kind].length === 1) {
                         //remove ultimo elemento da pilha e substitui com os simbolos da regra
                         stack.pop();
+                        const rightMostNode = parseTree.root.findRightmostEmptyNonterminal();
                         for (const s of [...this.parsingTable[stackTop][currToken.kind][0]].reverse()) {
                             if (s !== EPSILON) {
                                 stack.push(s);
+                                if (rightMostNode != null) {
+                                    console.log(rightMostNode.symbol, s, currToken);
+                                    if (s instanceof Nonterminal) {
+                                        const node = new NonterminalNode(s);
+                                        rightMostNode.addNonterminal(node);
+                                    }
+                                    else if (s instanceof Terminal) {
+                                        const node = new TerminalNode(s);
+                                        rightMostNode.addTerminal(node);
+                                    }
+                                }
+                                else{
+                                    console.log('Algo de errado na árvore sintática');
+                                    return null;
+                                }
                             }
                         }
                     }
                 }
                 else {
-                    return 'Tem algo errado com a tabela de parsing.';
+                    console.log('Tem algo errado com a tabela de parsing.');
+                    return null;
                 }
                 stackTop = stack[stack.length - 1];
             }
 
             if (currToken.kind === TokenType.map.EOF) {
-                return 'Palavra válida';
+                return parseTree;
             } else {
-                console.log(sentence)
-                console.log(currToken);
-                return `Erro sintático, esperava por EOF e apareceu: ${TokenType.revMap[currToken.kind]} na posição ${i}`;
+                //console.log(sentence)
+                //console.log(currToken);
+                console.log(`Erro sintático, esperava por EOF e apareceu: ${TokenType.revMap[currToken.kind]} na posição ${i}`);
+                return null;
             }
         }
     }

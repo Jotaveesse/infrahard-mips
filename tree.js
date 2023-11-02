@@ -3,14 +3,13 @@ class NonterminalNode {
         this.symbol = symbol;
         this.nonterminals = [];
         this.terminals = [];
-
     }
 
     addNonterminal(node) {
         if (node instanceof NonterminalNode) {
             this.nonterminals.push(node);
         } else {
-            console.error("addChild: Invalid argument - not a TreeNode");
+            console.error(`Não é um nó não terminal: ${node}`);
         }
     }
 
@@ -18,7 +17,7 @@ class NonterminalNode {
         if (node instanceof TerminalNode) {
             this.terminals.push(node);
         } else {
-            console.error("addChild: Invalid argument - not a TreeNode");
+            console.error(`Não é um nó terminal: ${node}`);
         }
     }
 
@@ -27,6 +26,7 @@ class NonterminalNode {
             return this;
         }
 
+        //navega pelos não terminais pelo nó mais a esquerda
         for (const nonterminal of this.nonterminals) {
             const result = nonterminal.findLeftmostEmptyNonterminal();
             if (result) {
@@ -42,6 +42,7 @@ class NonterminalNode {
             return this;
         }
 
+        //navega pelos não terminais pelo nó mais a esquerda
         for (const nonterminal of this.nonterminals) {
             const result = nonterminal.findLeftmostNonterminal();
             if (result) {
@@ -57,6 +58,7 @@ class NonterminalNode {
             return this;
         }
 
+        //navega pelos não terminais pelo nó mais a direita
         for (let i = this.nonterminals.length - 1; i >= 0; i--) {
             const nonterminal = this.nonterminals[i];
             const result = nonterminal.findRightmostEmptyNonterminal();
@@ -70,7 +72,7 @@ class NonterminalNode {
 
 
     findRightmostEmptyTerminal() {
-        
+        //navega pelos não terminais pelo nó mais a direita
         for (let i = this.nonterminals.length - 1; i >= 0; i--) {
             const nonterminal = this.nonterminals[i];
             const result = nonterminal.findRightmostEmptyTerminal();
@@ -78,17 +80,17 @@ class NonterminalNode {
                 return result;
             }
         }
-        
+
+        //checa se tem algum terminal com valor nulo e retorna ele
         if (this.terminals.length !== 0) {
-            for (const term of this.terminals){
-                if (term.value==null){
+            for (const term of this.terminals) {
+                if (term.value == null) {
                     return term;
                 }
             }
         }
         return null;
     }
-
 }
 
 class TerminalNode {

@@ -54,18 +54,18 @@ class Lexer {
         let token = null;
 
         if (this.curChar === "\u0000") {
-            token = new Token(this.curChar, TokenType.map.EOF);
+            token = new Token(this.curChar, TerminalTypes.map.EOF);
         } else if (this.curChar === '\n') {
-            token = new Token(this.curChar, TokenType.map.NEWLINE);
+            token = new Token(this.curChar, TerminalTypes.map.NEWLINE);
         }
         else if (this.curChar === ',') {
-            token = new Token(this.curChar, TokenType.map.COMMA);
+            token = new Token(this.curChar, TerminalTypes.map.COMMA);
         } else if (this.curChar === ':') {
-            token = new Token(this.curChar, TokenType.map.COLON);
+            token = new Token(this.curChar, TerminalTypes.map.COLON);
         } else if (this.curChar === '(') {
-            token = new Token(this.curChar, TokenType.map.L_PAREN);
+            token = new Token(this.curChar, TerminalTypes.map.L_PAREN);
         } else if (this.curChar === ')') {
-            token = new Token(this.curChar, TokenType.map.R_PAREN);
+            token = new Token(this.curChar, TerminalTypes.map.R_PAREN);
         } else if (this.curChar === '-' || isNum(this.curChar)) {
             const startPos = this.curPos;
 
@@ -82,7 +82,7 @@ class Lexer {
                 }
 
                 const text = this.source.substring(startPos, this.curPos + 1);
-                token = new Token(text, TokenType.map.NUMBER);
+                token = new Token(text, TerminalTypes.map.NUMBER);
             }
         } else if (this.curChar === '$') {
             const startPos = this.curPos;
@@ -98,7 +98,7 @@ class Lexer {
                 }
 
                 const text = this.source.substring(startPos, this.curPos + 1);
-                token = new Token(text, TokenType.map.REG);
+                token = new Token(text, TerminalTypes.map.REG);
             }
         } else if (this.curChar.match(/[a-zA-Z_]/)) {
             const startPos = this.curPos;
@@ -113,7 +113,8 @@ class Lexer {
 
             const kind = Token.checkIfKeyword(text);
             if (kind === null) {
-                token = new Token(text, TokenType.map.IDENT);
+                this.abort("Keyword não reconhecida: " + text);
+                //token = new Token(text, TokenType.map.IDENT);
             } else {
                 token = new Token(text, kind);
             }
@@ -130,15 +131,16 @@ class Lexer {
 class Token {
     constructor(tokenText, tokenKind) {
         this.text = tokenText;
-        this.kind = tokenKind;
+        this.type = tokenKind;
     }
 
     static checkIfKeyword(word) {
-        for (const kind of Object.keys(TokenType.map)) {
+        for (const kind of Object.keys(TerminalTypes.map)) {
             //console.log(kind,word,TokenType[word] )
 
-            if (kind === word.toUpperCase() && TokenType.map[kind] >= 100 && TokenType.map[kind] < 400) {
-                return TokenType.map[kind];
+            //100 a 400 sao as instruções
+            if (kind === word.toUpperCase() && TerminalTypes.map[kind] >= 100 && TerminalTypes.map[kind] < 400) {
+                return TerminalTypes.map[kind];
             }
         }
         return null;
@@ -148,8 +150,8 @@ class Token {
 
 Token.prototype.toString = function() {
        
-    for (const key in TokenType.map) {
-        if (TokenType.map.hasOwnProperty(key) && TokenType[key] === this.kind) {
+    for (const key in TerminalTypes.map) {
+        if (TerminalTypes.map.hasOwnProperty(key) && TerminalTypes[key] === this.type) {
             return key;
         }
     }

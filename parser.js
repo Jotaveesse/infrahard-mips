@@ -1,129 +1,3 @@
-
-class TwoWayMap {
-    constructor(map) {
-        this.map = map;
-        this.revMap = {};
-        for (const key in map) {
-            const value = map[key];
-            this.revMap[value] = key;
-        }
-    }
-    //get(key) { return this.map[key]; }
-    //revGet(key) { return this.reverseMap[key]; }
-}
-const TokenType = new TwoWayMap({
-    EPSILON: -2,
-    EOF: -1,
-    NEWLINE: 0,
-    NUMBER: 1,
-    IDENT: 2,
-    COMMA: 3,
-    REG: 4,
-    COLON: 5,
-    L_PAREN: 6,
-    R_PAREN: 7,
-    //RS:8,
-    //RT:9,
-    //RD:10,
-    SHAMT: 11,
-    OFFSET: 12,
-    ADDRESS: 13,
-    //Formato R
-    ADD: 100,
-    AND: 101,
-    DIV: 102,
-    MULT: 103,
-    JR: 104,
-    MFHI: 105,
-    MFLO: 106,
-    SLL: 107,
-    SLLV: 108,
-    SLT: 109,
-    SRA: 110,
-    SRAV: 111,
-    SRL: 112,
-    SUB: 113,
-    BREAK: 114,
-    RTE: 115,
-    //Formato I
-    ADDI: 200,
-    ADDIU: 201,
-    BEQ: 202,
-    BNE: 203,
-    BLE: 204,
-    BGT: 205,
-    ADDM: 206,
-    LB: 206,
-    LH: 207,
-    LUI: 208,
-    LW: 209,
-    SB: 210,
-    SH: 211,
-    SLTI: 212,
-    SW: 213,
-    //Formato J
-    J: 300,
-    JAL: 301,
-});
-
-
-
-class SymbolType {
-    static TERMINAL = 0;
-    static NONTERMINAL = 1;
-    static EPSILON = 2;
-    static EOF = 3;
-}
-
-class Symbol {
-    constructor(value, type) {
-        this.name = value;
-        //this.text = value.text;
-        //this.kind= value.kind;
-        this.type = type;
-    }
-
-    toString() {
-        return this.name;
-    }
-}
-
-class Nonterminal extends Symbol {
-    constructor(name) {
-        super(name, SymbolType.NONTERMINAL);
-    }
-}
-
-class Terminal extends Symbol {
-    constructor(name) {
-        super(name, SymbolType.TERMINAL);
-    }
-}
-
-class SpecialSymbol extends Symbol {
-    constructor(name, type) {
-        if (type === SymbolType.EPSILON || type === SymbolType.EOF) {
-            super(name, type);
-        } else {
-            throw new Error('Tipo inválido');
-        }
-    }
-}
-
-const EPSILON = new SpecialSymbol(TokenType.map.EPSILON, SymbolType.EPSILON);
-const EOF = new SpecialSymbol(TokenType.map.EOF, SymbolType.EOF);
-
-class Rule {
-    constructor(nt, production) {
-        this.nonterminal = nt;
-        this.production = production;
-    }
-
-    toString() {
-        return `${this.nonterminal} -> ${this.production.join(' ')}`;
-    }
-}
-
 class Grammar {
     constructor(productions, startSymbol) {
         this.productions = productions;
@@ -151,7 +25,6 @@ class Grammar {
 
     buildFirstSets() {
         for (const t of this.terminals) {
-            //console.log(TokenType.revMap[t.name])
             this.firstSet[t] = new Set([t]);
         }
 
@@ -163,7 +36,6 @@ class Grammar {
 
         let prevFollowSet = {};
 
-
         while (!areObjectSetsEqual(prevFollowSet, this.firstSet)) {
             prevFollowSet = structuredClone(this.firstSet);
 
@@ -172,6 +44,7 @@ class Grammar {
                 //para cada simbolo da produção
                 for (let i = 0; i < rule.production.length; i++) {
                     const symbol = rule.production[i];
+                    //console.log(symbol)
                     const symbolFirst = new Set(this.firstSet[symbol]);
 
                     //caso o first nao tenha epsilon já pode acabar aqui
@@ -189,9 +62,6 @@ class Grammar {
                     }
                 }
             }
-
-            // console.log("prev", prevFollowSet)
-            // console.log('current', this.firstSet)
         }
     }
 
@@ -225,7 +95,7 @@ class Grammar {
 
     getSymbolFollows(rule, currIndex) {
         const symbol = rule.production[currIndex];
-
+        //console.log(symbol)
         if (symbol instanceof Nonterminal) {
             let follows;
 
@@ -249,53 +119,49 @@ class Grammar {
 
             return follows;
         }
+        else {
+            //return new Set();
+        }
     }
     generateParsingTable() {
         for (const nt of this.nonTerminals) {
             this.parsingTable[nt] = {};
             for (const t of this.terminals) {
-                this.parsingTable[nt][t.name] = [];
+                this.parsingTable[nt][t.type] = [];
             }
 
-            this.parsingTable[nt][TokenType.map.EOF] = [];
+            this.parsingTable[nt][EOF] = [];
         }
 
         for (const prod of this.productions) {
             const prodFirstSet = {};
             for (const t of this.terminals) {
-                prodFirstSet[t.name] = new Set([t]);
+                prodFirstSet[t.type] = new Set([t]);
             }
 
             for (const nt of this.nonTerminals) {
                 prodFirstSet[nt] = new Set();
             }
-            //console.log(prod)
+
             for (const firstTerminal of this.firstSet[prod.production[0]]) {
                 if (prod.production[0] === EPSILON) {
                     //talvez esteja errado pq deveria pegar o follow do proximo simbolo
                     for (const followTerminal of this.followSet[prod.nonterminal]) {
-                        console.log(prod.nonterminal, followTerminal, prod.production)
-                        //console.log('table: ', this.parsingTable)
-                        this.parsingTable[prod.nonterminal.name][followTerminal.name].push(prod.production);
+                        this.parsingTable[prod.nonterminal.type][followTerminal.type].push(prod.production);
                     }
                 } else if (firstTerminal === EPSILON) {
-                    //console.log('huh', this.firstSet, prod.production)
                     if (prod.production.length >= 2) {
-                        for (const firstTerminal of this.firstSet[prod.production[1]]) {
-                            console.log(prod.nonterminal, firstTerminal, prod.production)
-                            this.parsingTable[prod.nonterminal.name][firstTerminal.name].push(prod.production);
+                        for (const nextFirstTerminal of this.firstSet[prod.production[1]]) {
+                            this.parsingTable[prod.nonterminal.type][nextFirstTerminal.type].push(prod.production);
                         }
                     }
                     else {
                         for (const followTerminal of this.followSet[prod.nonterminal]) {
-                            console.log(prod.nonterminal, followTerminal, prod.production)
-                            //console.log('table: ', this.parsingTable)
-                            this.parsingTable[prod.nonterminal.name][followTerminal.name].push(prod.production);
+                            this.parsingTable[prod.nonterminal.type][followTerminal.type].push(prod.production);
                         }
                     }
                 } else {
-                    //console.log(prod.nonterminal, firstTerminal, prod.production)
-                    this.parsingTable[prod.nonterminal.name][firstTerminal.name].push(prod.production);
+                    this.parsingTable[prod.nonterminal.type][firstTerminal.type].push(prod.production);
                 }
             }
         }
@@ -304,8 +170,8 @@ class Grammar {
     checkIfLL1() {
         for (const nt of this.nonTerminals) {
             for (const t of this.terminals) {
-                if (this.parsingTable[nt][t.name].length > 1) {
-                    console.log('Erro na tabela: ', nt, t.name);
+                if (this.parsingTable[nt][t.type].length > 1) {
+                    console.log('Erro na tabela: ', nt, t.type);
                     return false;
                 }
             }
@@ -328,38 +194,36 @@ class Grammar {
             const parseTree = new ParseTree(this.startSymbol);
 
             while (stackTop !== EOF) {
-                //console.log(sentence)
-
-                //console.log(stackTop, currToken, TokenType.revMap[currToken.kind]);
-                if (currToken.kind === TokenType.map.NUMBER) {
-                    if (stackTop.name == ('OFFSET'))
-                        currToken.kind = TokenType.map.OFFSET;
-                    else if (stackTop.name == ('SHAMT'))
-                        currToken.kind = TokenType.map.SHAMT;
-                    else if (stackTop.name == ('ADDRESS') || stackTop.name == ('T6'))
-                        currToken.kind = TokenType.map.ADDRESS;
-
+                //converte os tokens number para tipos numericos especificos
+                if (currToken.type === TerminalTypes.map.NUMBER) {
+                    if (stackTop.type == NonterminalTypes.OFFSET)
+                        currToken.type = TerminalTypes.map.OFFSET;
+                    else if (stackTop.type == NonterminalTypes.SHAMT)
+                        currToken.type = TerminalTypes.map.SHAMT;
+                    else if (stackTop.type == TerminalTypes.map.ADDRESS || stackTop.type == NonterminalTypes.T6)
+                        currToken.type = TerminalTypes.map.ADDRESS;
                 }
 
                 if (stackTop instanceof Terminal) {
-                    if (currToken.kind === TokenType.map.SHAMT || currToken.kind === TokenType.map.OFFSET || currToken.kind === TokenType.map.ADDRESS) {
+                    if (currToken.type === TerminalTypes.map.SHAMT || currToken.type === TerminalTypes.map.OFFSET || currToken.type === TerminalTypes.map.ADDRESS) {
+                        const bitCount = countBits(currToken.text);
+
+                        // remove ultimo elemento da pilha e vai pro proximo token
                         stack.pop();
                         i++;
-                        console.log(currToken)
 
-                        const bitCount = countBits(currToken.text);
                         let bitLimit;
-                        if (currToken.kind === TokenType.map.SHAMT) {
+                        if (currToken.type === TerminalTypes.map.SHAMT) {
                             if (currToken.text < 0) {
                                 console.log(`Erro sintático, esperava por um número positivo e apareceu  um de negativo na posição ${i}`);
                                 return null;
                             }
-                            bitLimit = 6;   //6 pq so aceita os numeros positivos
+                            bitLimit = 6;   //6 ao inves de 5 pq so aceita os numeros positivos
                         }
-                        if (currToken.kind === TokenType.map.OFFSET) {
+                        if (currToken.type === TerminalTypes.map.OFFSET) {
                             bitLimit = 16;
                         }
-                        if (currToken.kind === TokenType.map.ADDRESS) {
+                        if (currToken.type === TerminalTypes.map.ADDRESS) {
                             bitLimit = 26;
                         }
                         if (bitCount > bitLimit) {
@@ -374,16 +238,14 @@ class Grammar {
                         if (i < size) {
                             currToken = sentence[i];
                         } else {
-                            currToken = TokenType.map.EOF;
+                            currToken = EOF;
                         }
 
                     }
-                    else if (stackTop.name === currToken.kind) {
+                    else if (stackTop.type === currToken.type) {
                         // remove ultimo elemento da pilha e vai pro proximo token
                         stack.pop();
                         i++;
-
-                        //console.log(parseTree.root.findRightmostEmptyTerminal());
 
                         //adiciona o valor do token na arvore
                         parseTree.root.findRightmostEmptyTerminal().value = currToken.text;
@@ -391,28 +253,28 @@ class Grammar {
                         if (i < size) {
                             currToken = sentence[i];
                         } else {
-                            currToken = TokenType.map.EOF;
+                            currToken = EOF;
                         }
 
                     } else {
-                        console.log(`Erro sintático, esperava por ${TokenType.revMap[stackTop.name]} e apareceu ${TokenType.revMap[currToken.kind]} na posição ${i}`);
+                        console.log(`Erro sintático, esperava por ${TerminalTypes.revMap[stackTop.type]} e apareceu ${TerminalTypes.revMap[currToken.type]} na posição ${i}`);
                         return null;
                     }
                 }
 
                 else if (stackTop instanceof Nonterminal) {
                     //caso nao tenha nenhuma regra para essa combinação de terminal e nao terminal
-                    if (this.parsingTable[stackTop][currToken.kind].length === 0) {
-                        console.log(`Erro sintático, caractere inesperado para resolver não-terminal ${stackTop.name}: ${TokenType.revMap[currToken.kind]} na posição ${i}`);
+                    if (this.parsingTable[stackTop][currToken.type].length === 0) {
+                        console.log(`Erro sintático, caractere inesperado para resolver não-terminal ${stackTop.type}: ${TerminalTypes.revMap[currToken.type]} na posição ${i}`);
                         return null;
                     }
-                    else if (this.parsingTable[stackTop][currToken.kind].length === 1) {
+                    else if (this.parsingTable[stackTop][currToken.type].length === 1) {
                         //remove ultimo elemento da pilha e substitui com os simbolos da regra
                         stack.pop();
 
                         const rightMostNode = parseTree.root.findRightmostEmptyNonterminal();
 
-                        for (const s of [...this.parsingTable[stackTop][currToken.kind][0]].reverse()) {
+                        for (const s of [...this.parsingTable[stackTop][currToken.type][0]].reverse()) {
                             if (s !== EPSILON) {
                                 stack.push(s);
                                 if (rightMostNode != null) {
@@ -450,24 +312,22 @@ class Grammar {
                 stackTop = stack[stack.length - 1];
             }
 
-            if (currToken.kind === TokenType.map.EOF) {
+            if (currToken.type === TerminalTypes.map.EOF) {
                 return parseTree;
             } else {
                 //console.log(sentence)
                 //console.log(currToken);
-                console.log(`Erro sintático, esperava por EOF e apareceu: ${TokenType.revMap[currToken.kind]} na posição ${i}`);
+                console.log(`Erro sintático, esperava por EOF e apareceu: ${TerminalTypes.revMap[currToken.type]} na posição ${i}`);
                 return null;
             }
         }
     }
-
-
 }
+
 function areObjectSetsEqual(obj1, obj2) {
     const keys1 = Object.keys(obj1);
     const keys2 = Object.keys(obj2);
 
-    // Check if the keys in both objects are the same
     if (!keys1.every(key => keys2.includes(key))) {
         return false;
     }
@@ -476,17 +336,17 @@ function areObjectSetsEqual(obj1, obj2) {
         return false;
     }
 
-    // Check if the sets in each key are equal
+    // checa se cada key é igual em cada
     for (const key of keys1) {
         const set1 = obj1[key];
         const set2 = obj2[key];
 
         if (!(set1 instanceof Set) || !(set2 instanceof Set)) {
-            return false; // Ensure values are sets
+            return false;
         }
 
         if (set1.size !== set2.size) {
-            return false; // Different sizes
+            return false;
         }
 
         for (const value1 of set1) {
@@ -499,10 +359,10 @@ function areObjectSetsEqual(obj1, obj2) {
             }
 
             if (!hasVal)
-                return false
+                return false;
         }
     }
-    return true; // All checks passed
+    return true;
 }
 
 function areObjectsEqual(obj1, obj2) {
@@ -510,23 +370,23 @@ function areObjectsEqual(obj1, obj2) {
     const keys2 = Object.keys(obj2);
 
     if (keys1.length !== keys2.length) {
-        return false; // Different number of keys
+        return false;
     }
 
     for (const key of keys1) {
         if (obj1[key] !== obj2[key]) {
-            return false; // Values for the same key are not equal
+            return false;
         }
     }
 
-    return true; // All keys and values are equal
+    return true;
 }
 
+//conta quantos bits seriam necessarios para represetnar um numero
 function countBits(num) {
     const intNum = parseInt(num);
     if (intNum >= 0)
         return Math.ceil(Math.log(intNum + 1) / Math.log(2)) + 1;
     else
         return Math.ceil(Math.log(Math.abs(intNum)) / Math.log(2)) + 1;
-
 }

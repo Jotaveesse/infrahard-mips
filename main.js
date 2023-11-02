@@ -40,9 +40,9 @@ function parse(sentence) {
     const A = new Nonterminal('A');
     const B = new Nonterminal('B');
     const INST = new Nonterminal('INST');
-    const R = new Nonterminal('R');
-    const I = new Nonterminal('I');
-    const J = new Nonterminal('J');
+    const R_FORMAT = new Nonterminal('R_FORMAT');
+    const I_FORMAT = new Nonterminal('I_FORMAT');
+    const J_FORMAT = new Nonterminal('J_FORMAT');
 
     const ADD = new Nonterminal('ADD');
     const AND = new Nonterminal('AND');
@@ -76,7 +76,7 @@ function parse(sentence) {
     const SLTI = new Nonterminal('SLTI');
     const SW = new Nonterminal('SW');
 
-    const JUMP = new Nonterminal('JUMP');
+    const J = new Nonterminal('J');
     const JAL = new Nonterminal('JAL');
 
     const T1 = new Nonterminal('T1');
@@ -91,16 +91,20 @@ function parse(sentence) {
     const T10 = new Nonterminal('T10');
     const T11 = new Nonterminal('T11');
 
-    
     const RS = new Nonterminal('RS');
     const RT = new Nonterminal('RT');
     const RD = new Nonterminal('RD');
+
+    const SHAMT = new Nonterminal('SHAMT');
+    const OFFSET = new Nonterminal('OFFSET');
+    const ADDRESS = new Nonterminal('ADDRESS');
 
     const terminals = {};
 
     for (const token in TokenType.map) {
         terminals[token] = new Terminal(TokenType.map[token]);
     }
+    delete terminals.NUMBER;
 
     const grammarProductions = [
         new Rule(S, [A]),
@@ -109,44 +113,44 @@ function parse(sentence) {
         new Rule(A, [EPSILON]),
         new Rule(B, [terminals.NEWLINE, A]),
         new Rule(B, [EPSILON]),
-        new Rule(INST, [R]),
-        new Rule(INST, [I]),
-        new Rule(INST, [J]),
+        new Rule(INST, [R_FORMAT]),
+        new Rule(INST, [I_FORMAT]),
+        new Rule(INST, [J_FORMAT]),
 
-        new Rule(R, [ADD]),
-        new Rule(R, [AND]),
-        new Rule(R, [DIV]),
-        new Rule(R, [MULT]),
-        new Rule(R, [JR]),
-        new Rule(R, [MFHI]),
-        new Rule(R, [MFLO]),
-        new Rule(R, [SLL]),
-        new Rule(R, [SLLV]),
-        new Rule(R, [SLT]),
-        new Rule(R, [SRA]),
-        new Rule(R, [SRAV]),
-        new Rule(R, [SRL]),
-        new Rule(R, [SUB]),
-        new Rule(R, [BREAK]),
-        new Rule(R, [RTE]),
+        new Rule(R_FORMAT, [ADD]),
+        new Rule(R_FORMAT, [AND]),
+        new Rule(R_FORMAT, [DIV]),
+        new Rule(R_FORMAT, [MULT]),
+        new Rule(R_FORMAT, [JR]),
+        new Rule(R_FORMAT, [MFHI]),
+        new Rule(R_FORMAT, [MFLO]),
+        new Rule(R_FORMAT, [SLL]),
+        new Rule(R_FORMAT, [SLLV]),
+        new Rule(R_FORMAT, [SLT]),
+        new Rule(R_FORMAT, [SRA]),
+        new Rule(R_FORMAT, [SRAV]),
+        new Rule(R_FORMAT, [SRL]),
+        new Rule(R_FORMAT, [SUB]),
+        new Rule(R_FORMAT, [BREAK]),
+        new Rule(R_FORMAT, [RTE]),
 
-        new Rule(I, [ADDI]),
-        new Rule(I, [ADDIU]),
-        new Rule(I, [BEQ]),
-        new Rule(I, [BNE]),
-        new Rule(I, [BLE]),
-        new Rule(I, [BGT]),
-        new Rule(I, [LB]),
-        new Rule(I, [LH]),
-        new Rule(I, [LUI]),
-        new Rule(I, [LW]),
-        new Rule(I, [SB]),
-        new Rule(I, [SH]),
-        new Rule(I, [SLTI]),
-        new Rule(I, [SW]),
+        new Rule(I_FORMAT, [ADDI]),
+        new Rule(I_FORMAT, [ADDIU]),
+        new Rule(I_FORMAT, [BEQ]),
+        new Rule(I_FORMAT, [BNE]),
+        new Rule(I_FORMAT, [BLE]),
+        new Rule(I_FORMAT, [BGT]),
+        new Rule(I_FORMAT, [LB]),
+        new Rule(I_FORMAT, [LH]),
+        new Rule(I_FORMAT, [LUI]),
+        new Rule(I_FORMAT, [LW]),
+        new Rule(I_FORMAT, [SB]),
+        new Rule(I_FORMAT, [SH]),
+        new Rule(I_FORMAT, [SLTI]),
+        new Rule(I_FORMAT, [SW]),
         
-        new Rule(J, [JUMP]),
-        new Rule(J, [JAL]),
+        new Rule(J_FORMAT, [J]),
+        new Rule(J_FORMAT, [JAL]),
 
 
         new Rule(ADD, [terminals.ADD, T5]),
@@ -181,7 +185,7 @@ function parse(sentence) {
         new Rule(SLTI, [terminals.SLTI, T10]),
         new Rule(SW, [terminals.SW, T11]),
 
-        new Rule(JUMP, [terminals.J, T6]),
+        new Rule(J, [terminals.J, T6]),
         new Rule(JAL, [terminals.JAL, T6]),
 
 
@@ -191,19 +195,21 @@ function parse(sentence) {
         new Rule(T3, [RD]),
         new Rule(T4, [RS, terminals.COMMA, RT]),
         new Rule(T5, [RD, terminals.COMMA, RS, terminals.COMMA, RT]),
-        new Rule(T6, [terminals.NUMBER]),
-        new Rule(T7, [RT, terminals.COMMA, terminals.NUMBER]),
-        new Rule(T8, [RD, terminals.COMMA, RT, terminals.COMMA, terminals.NUMBER]),
-        new Rule(T9, [RS, terminals.COMMA, RT, terminals.COMMA, terminals.NUMBER]),
-        new Rule(T10, [RT, terminals.COMMA, RS, terminals.COMMA, terminals.NUMBER]),
-        new Rule(T11, [RT, terminals.COMMA, terminals.NUMBER, terminals.L_PAREN, RS, terminals.R_PAREN]),
+        new Rule(T6, [ADDRESS]),
+        new Rule(T7, [RT, terminals.COMMA, OFFSET]),
+        new Rule(T8, [RD, terminals.COMMA, RT, terminals.COMMA, SHAMT]),
+        new Rule(T9, [RS, terminals.COMMA, RT, terminals.COMMA, OFFSET]),
+        new Rule(T10, [RT, terminals.COMMA, RS, terminals.COMMA, OFFSET]),
+        new Rule(T11, [RT, terminals.COMMA, OFFSET, terminals.L_PAREN, RS, terminals.R_PAREN]),
 
         new Rule(RS, [terminals.REG]),
         new Rule(RT, [terminals.REG]),
         new Rule(RD, [terminals.REG]),
 
+        new Rule(SHAMT, [terminals.SHAMT]),
+        new Rule(OFFSET, [terminals.OFFSET]),
+        new Rule(ADDRESS, [terminals.ADDRESS]),
 
-        //new Rule(ADD, [terminals.ADD, terminals.REG, terminals.COMMA, terminals.REG, terminals.COMMA, terminals.REG]),
     ];
 
 
@@ -218,7 +224,7 @@ function parse(sentence) {
     console.log(grammar.checkIfLL1());
     console.log('parsing table: ', grammar.parsingTable);
     const parsedTree = grammar.parse(sentence);
-    console.log(parsedTree);
+    console.log('tree:',parsedTree);
     const binary = convert(parsedTree.root);
     outputTextArea.value = binary;
 

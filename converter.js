@@ -1,7 +1,41 @@
+const codes = {
+    ADD: parseInt('20', 16),
+    AND: parseInt('24', 16),
+    DIV: parseInt('1a', 16),
+    MULT: parseInt('18', 16),
+    JR: parseInt('8', 16),
+    MFHI: parseInt('10', 16),
+    MFLO: parseInt('12', 16),
+    SLL: parseInt('0', 16),
+    SLLV: parseInt('4', 16),
+    SLT: parseInt('2a', 16),
+    SRA: parseInt('3', 16),
+    SRAV: parseInt('7', 16),
+    SRL: parseInt('2', 16),
+    SUB: parseInt('22', 16),
+    BREAK: parseInt('d', 16),
+    RTE: parseInt('13', 16),
+    ADDI: parseInt('8', 16),
+    ADDIU: parseInt('9', 16),
+    BEQ: parseInt('4', 16),
+    BNE: parseInt('5', 16),
+    BLE: parseInt('6', 16),
+    BGT: parseInt('7', 16),
+    LB: parseInt('20', 16),
+    LH: parseInt('21', 16),
+    LUI: parseInt('f', 16),
+    LW: parseInt('23', 16),
+    SB: parseInt('28', 16),
+    SH: parseInt('29', 16),
+    SLTI: parseInt('a', 16),
+    SW: parseInt('2b', 16),
+    J: parseInt('2', 16),
+    JAL: parseInt('3', 16),
+}
 
 
 function convert(parseNode) {
-    var converted = '';
+    var converted = [];
     for (let i = parseNode.nonterminals.length - 1; i >= 0; i--) {
         const segments = {
             OPCODE: '0',
@@ -23,35 +57,53 @@ function convert(parseNode) {
 
             for (const prod of suffix.nonterminals) {
                 if (prod.terminals.length !== 0) {
-                    console.log(prod.terminals[0])
+                    //console.log(prod.terminals[0])
                     segments[prod.symbol.name] = parseInt(removeCharacter(prod.terminals[0].value, '$'));
                 }
+                //TODO remover esse else
                 else {
-                    segments[prod.symbol.name] = parseInt(removeCharacter(prod.value, '$'));
+                    console.log('uhhh',suffix)
+                    //segments[prod.symbol.name] = parseInt(removeCharacter(prod.symbol.name, '$'));
                 }
             }
 
-            if (format.symbol.name === 'R') {
-                segments.FUNCT = 32;
+            //console.log(inst.symbol.name)
+            if (format.symbol.name === 'R_FORMAT') {
+                segments.FUNCT = codes[inst.symbol.name];
             }
             else {
-                segments.OPCODE = 32;
+                segments.OPCODE = codes[inst.symbol.name];
             }
             console.log(segments)
-            if (format.symbol.name === 'R') {
+
+            let binaryCode;
+
+            if (format.symbol.name === 'R_FORMAT') {
                 getBinarySegments(segments);
-                let binaryCode = segments.OPCODE + segments.RS + segments.RT + segments.RD + segments.SHAMT + segments.FUNCT;
+                binaryCode = segments.OPCODE + segments.RS + segments.RT + segments.RD + segments.SHAMT + segments.FUNCT;
                 binaryCode = addNewlines(binaryCode, 8);
 
-                converted += binaryCode;
             }
+            else if (format.symbol.name === 'I_FORMAT') {
+                getBinarySegments(segments);
+                binaryCode = segments.OPCODE + segments.RS + segments.RT + segments.OFFSET;
+                binaryCode = addNewlines(binaryCode, 8);
+
+            }
+            if (format.symbol.name === 'J_FORMAT') {
+                getBinarySegments(segments);
+                binaryCode = segments.OPCODE + segments.ADDRESS;
+                binaryCode = addNewlines(binaryCode, 8);
+
+            }
+            converted.push(binaryCode);
         }
         else {
-            converted += '\n'+convert(nonterminal);
+            converted.push(convert(nonterminal));
         }
 
     }
-    return converted;
+    return converted.join('\n\n');
 }
 
 function addNewlines(inputString, n) {
@@ -71,10 +123,11 @@ function getBinarySegments(segments) {
 }
 
 function numberToBinary(num, size) {
-    var binary = num.toString(2);
+    var binary = Math.abs(num).toString(2);
 
-    while (binary.length < size)
-        binary = '0' + binary;
+    while (binary.length < size){
+        binary = (num>=0?'0':'1') + binary;
+    }
     return binary;
 }
 

@@ -25,9 +25,9 @@ const TokenType = new TwoWayMap({
     //RS:8,
     //RT:9,
     //RD:10,
-    //NUM5:11,
-    //NUM16:12,
-    //NUM26:13,
+    SHAMT: 11,
+    OFFSET: 12,
+    ADDRESS: 13,
     //Formato R
     ADD: 100,
     AND: 101,
@@ -163,28 +163,28 @@ class Grammar {
 
         let prevFollowSet = {};
 
-        var count = 20;
 
         while (!areObjectSetsEqual(prevFollowSet, this.firstSet)) {
-
-
-            if (count <= 0)
-                break;
-            count--;
             prevFollowSet = structuredClone(this.firstSet);
 
+            //para cada produção
             for (const rule of this.productions) {
+                //para cada simbolo da produção
                 for (let i = 0; i < rule.production.length; i++) {
                     const symbol = rule.production[i];
                     const symbolFirst = new Set(this.firstSet[symbol]);
 
+                    //caso o first nao tenha epsilon já pode acabar aqui
+                    //caso contrario continua adicionando os firsts dos proximos simbolos
                     if (!symbolFirst.has(EPSILON)) {
                         this.firstSet[rule.nonterminal] = new Set([...this.firstSet[rule.nonterminal], ...symbolFirst]);
                         break;
-                    } else if (i < rule.production.length - 1) {
+                    }
+                    else if (i < rule.production.length - 1) {
                         symbolFirst.delete(EPSILON);
                         this.firstSet[rule.nonterminal] = new Set([...this.firstSet[rule.nonterminal], ...symbolFirst]);
-                    } else {
+                    }
+                    else {
                         this.firstSet[rule.nonterminal] = new Set([...this.firstSet[rule.nonterminal], ...symbolFirst]);
                     }
                 }
@@ -196,6 +196,7 @@ class Grammar {
     }
 
     buildFollowSets() {
+        // inicializa os follows
         for (const nt of this.nonTerminals) {
             this.followSet[nt] = new Set();
         }
@@ -207,30 +208,48 @@ class Grammar {
         while (!areObjectSetsEqual(prevFollowSet, this.followSet)) {
             prevFollowSet = structuredClone(this.followSet);
 
+            //para cada produção
             for (const rule of this.productions) {
+                //para cada simbolo da produção
                 for (let i = 0; i < rule.production.length; i++) {
                     const symbol = rule.production[i];
 
                     if (symbol instanceof Nonterminal) {
-                        let nextFirst;
-                        if (i < rule.production.length - 1) {
-                            nextFirst = new Set(this.firstSet[rule.production[i + 1]]);
-                        } else {
-                            nextFirst = new Set(this.followSet[rule.nonterminal]);
-                        }
-
-                        if (nextFirst.has(EPSILON)) {
-                            nextFirst.delete(EPSILON);
-                            this.followSet[symbol] = new Set([...this.followSet[symbol], ...nextFirst]);
-                        } else {
-                            this.followSet[symbol] = new Set([...this.followSet[symbol], ...nextFirst]);
-                        }
+                        this.followSet[symbol] = new Set([...this.followSet[symbol], ...this.getSymbolFollows(rule, i)]);
                     }
                 }
             }
         }
+
     }
 
+    getSymbolFollows(rule, currIndex) {
+        const symbol = rule.production[currIndex];
+
+        if (symbol instanceof Nonterminal) {
+            let follows;
+
+            //se esse não for o ultimo simbolo
+            if (currIndex < rule.production.length - 1) {
+                follows = new Set(this.firstSet[rule.production[currIndex + 1]]);   //pega firsts to proximo simbolo
+            }
+            //se for ultimo simbolo
+            else {
+                follows = new Set(this.followSet[rule.nonterminal]);    //pega follow do simbolo da regra
+            }
+
+            //caso o proximo simbolo tenha epsilon
+            if (follows.has(EPSILON)) {
+                follows.delete(EPSILON);
+
+                const nextFirst = this.getSymbolFollows(rule, currIndex + 1);  //pega follow do proximo simbolo
+
+                follows = new Set([...nextFirst, ...follows]);
+            }
+
+            return follows;
+        }
+    }
     generateParsingTable() {
         for (const nt of this.nonTerminals) {
             this.parsingTable[nt] = {};
@@ -255,7 +274,7 @@ class Grammar {
                 if (prod.production[0] === EPSILON) {
                     //talvez esteja errado pq deveria pegar o follow do proximo simbolo
                     for (const followTerminal of this.followSet[prod.nonterminal]) {
-                        //console.log(prod.nonterminal, followTerminal, prod.production)
+                        console.log(prod.nonterminal, followTerminal, prod.production)
                         //console.log('table: ', this.parsingTable)
                         this.parsingTable[prod.nonterminal.name][followTerminal.name].push(prod.production);
                     }
@@ -263,13 +282,13 @@ class Grammar {
                     //console.log('huh', this.firstSet, prod.production)
                     if (prod.production.length >= 2) {
                         for (const firstTerminal of this.firstSet[prod.production[1]]) {
-                            //console.log(prod.nonterminal, firstTerminal, prod.production)
+                            console.log(prod.nonterminal, firstTerminal, prod.production)
                             this.parsingTable[prod.nonterminal.name][firstTerminal.name].push(prod.production);
                         }
                     }
                     else {
                         for (const followTerminal of this.followSet[prod.nonterminal]) {
-                            //console.log(prod.nonterminal, followTerminal, prod.production)
+                            console.log(prod.nonterminal, followTerminal, prod.production)
                             //console.log('table: ', this.parsingTable)
                             this.parsingTable[prod.nonterminal.name][followTerminal.name].push(prod.production);
                         }
@@ -286,6 +305,7 @@ class Grammar {
         for (const nt of this.nonTerminals) {
             for (const t of this.terminals) {
                 if (this.parsingTable[nt][t.name].length > 1) {
+                    console.log('Erro na tabela: ', nt, t.name);
                     return false;
                 }
             }
@@ -309,23 +329,71 @@ class Grammar {
 
             while (stackTop !== EOF) {
                 //console.log(sentence)
-                //console.log(currToken, TokenType.revMap[currToken.kind]);
+
+                //console.log(stackTop, currToken, TokenType.revMap[currToken.kind]);
+                if (currToken.kind === TokenType.map.NUMBER) {
+                    if (stackTop.name == ('OFFSET'))
+                        currToken.kind = TokenType.map.OFFSET;
+                    else if (stackTop.name == ('SHAMT'))
+                        currToken.kind = TokenType.map.SHAMT;
+                    else if (stackTop.name == ('ADDRESS') || stackTop.name == ('T6'))
+                        currToken.kind = TokenType.map.ADDRESS;
+
+                }
 
                 if (stackTop instanceof Terminal) {
-                    if (stackTop.name === currToken.kind) {
-                        // remove ultimo elemento da pilha e vai pro proximo token
+                    if (currToken.kind === TokenType.map.SHAMT || currToken.kind === TokenType.map.OFFSET || currToken.kind === TokenType.map.ADDRESS) {
                         stack.pop();
                         i++;
+                        console.log(currToken)
 
-                        console.log( parseTree.root.findRightmostEmptyTerminal())
-                        parseTree.root.findRightmostEmptyTerminal().value=currToken.text;
+                        const bitCount = countBits(currToken.text);
+                        let bitLimit;
+                        if (currToken.kind === TokenType.map.SHAMT) {
+                            if (currToken.text < 0) {
+                                console.log(`Erro sintático, esperava por um número positivo e apareceu  um de negativo na posição ${i}`);
+                                return null;
+                            }
+                            bitLimit = 6;   //6 pq so aceita os numeros positivos
+                        }
+                        if (currToken.kind === TokenType.map.OFFSET) {
+                            bitLimit = 16;
+                        }
+                        if (currToken.kind === TokenType.map.ADDRESS) {
+                            bitLimit = 26;
+                        }
+                        if (bitCount > bitLimit) {
+                            console.log(currToken.text)
+                            console.log(`Erro sintático, esperava por um número de ${bitLimit} bits e apareceu  um de ${bitCount} bits na posição ${i}`);
+                            return null;
+                        }
+
+                        //adiciona o valor do token na arvore
+                        parseTree.root.findRightmostEmptyTerminal().value = currToken.text;
 
                         if (i < size) {
                             currToken = sentence[i];
                         } else {
                             currToken = TokenType.map.EOF;
                         }
-                        
+
+                    }
+                    else if (stackTop.name === currToken.kind) {
+                        // remove ultimo elemento da pilha e vai pro proximo token
+                        stack.pop();
+                        i++;
+
+                        //console.log(parseTree.root.findRightmostEmptyTerminal());
+
+                        //adiciona o valor do token na arvore
+                        parseTree.root.findRightmostEmptyTerminal().value = currToken.text;
+
+                        if (i < size) {
+                            currToken = sentence[i];
+                        } else {
+                            currToken = TokenType.map.EOF;
+                        }
+
                     } else {
                         console.log(`Erro sintático, esperava por ${TokenType.revMap[stackTop.name]} e apareceu ${TokenType.revMap[currToken.kind]} na posição ${i}`);
                         return null;
@@ -341,12 +409,16 @@ class Grammar {
                     else if (this.parsingTable[stackTop][currToken.kind].length === 1) {
                         //remove ultimo elemento da pilha e substitui com os simbolos da regra
                         stack.pop();
+
                         const rightMostNode = parseTree.root.findRightmostEmptyNonterminal();
+
                         for (const s of [...this.parsingTable[stackTop][currToken.kind][0]].reverse()) {
                             if (s !== EPSILON) {
                                 stack.push(s);
                                 if (rightMostNode != null) {
-                                    console.log(rightMostNode.symbol, s, currToken);
+                                    //console.log(rightMostNode.symbol, s, currToken);
+
+                                    // adiciona simbolo à arvore
                                     if (s instanceof Nonterminal) {
                                         const node = new NonterminalNode(s);
                                         rightMostNode.addNonterminal(node);
@@ -356,9 +428,16 @@ class Grammar {
                                         rightMostNode.addTerminal(node);
                                     }
                                 }
-                                else{
+                                else {
                                     console.log('Algo de errado na árvore sintática');
                                     return null;
+                                }
+                            }
+                            //caso regra seja epsilon adiciona o no epsilon terminal
+                            else {
+                                if (rightMostNode != null) {
+                                    const node = new TerminalNode(s);
+                                    rightMostNode.addTerminal(node);
                                 }
                             }
                         }
@@ -441,4 +520,13 @@ function areObjectsEqual(obj1, obj2) {
     }
 
     return true; // All keys and values are equal
+}
+
+function countBits(num) {
+    const intNum = parseInt(num);
+    if (intNum >= 0)
+        return Math.ceil(Math.log(intNum + 1) / Math.log(2)) + 1;
+    else
+        return Math.ceil(Math.log(Math.abs(intNum)) / Math.log(2)) + 1;
+
 }

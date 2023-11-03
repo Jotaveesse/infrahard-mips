@@ -18,6 +18,8 @@ class Grammar {
         this.followSet = {};
         this.parsingTable = {};
 
+        this.permStack = [EOF, this.startSymbol];;
+
         this.buildFirstSets();
         this.buildFollowSets();
         this.generateParsingTable();
@@ -179,7 +181,124 @@ class Grammar {
         return true;
     }
 
-    parse(sentence) {
+    parseToken(currToken, parseTree) {
+        let stackTop = this.permStack[this.permStack.length - 1];
+
+        while (true) {
+            //converte os tokens number para tipos numericos especificos
+            if (currToken.type === TerminalTypes.map.NUMBER) {
+                if (stackTop.type == NonterminalTypes.OFFSET)
+                    currToken.type = TerminalTypes.map.OFFSET;
+                else if (stackTop.type == NonterminalTypes.SHAMT)
+                    currToken.type = TerminalTypes.map.SHAMT;
+                else if (stackTop.type == TerminalTypes.map.ADDRESS || stackTop.type == NonterminalTypes.T6)
+                    currToken.type = TerminalTypes.map.ADDRESS;
+                else{
+                return(`Erro sintático, esperava por ${this.firstSet[stackTop.type].display()} e apareceu ${TerminalTypes.revMap[currToken.type]}`);
+                }
+            }
+
+            if (stackTop instanceof Terminal) {
+                if (currToken.type === TerminalTypes.map.SHAMT || currToken.type === TerminalTypes.map.OFFSET || currToken.type === TerminalTypes.map.ADDRESS) {
+                    const bitCount = countBits(currToken.text);
+
+                    // remove ultimo elemento da pilha e vai pro proximo token
+                    this.permStack.pop();
+
+                    let bitLimit;
+                    if (currToken.type === TerminalTypes.map.SHAMT) {
+                        if (currToken.text < 0) {
+                            return('Erro sintático, esperava por um número positivo e apareceu um negativo');
+                        }
+                        bitLimit = 6;   //6 ao inves de 5 pq so aceita os numeros positivos
+                    }
+                    if (currToken.type === TerminalTypes.map.OFFSET) {
+                        bitLimit = 16;
+                    }
+                    if (currToken.type === TerminalTypes.map.ADDRESS) {
+                        bitLimit = 26;
+                    }
+                    if (bitCount > bitLimit) {
+                        return(`Erro sintático, esperava por um número de no máximo ${bitLimit} bits e apareceu um de ${bitCount} bits`);
+                    }
+
+                    //adiciona o valor do token na arvore
+                    parseTree.root.findRightmostEmptyTerminal().value = currToken.text;
+
+                    break;
+
+                }
+                else if (stackTop.type === currToken.type) {
+                    // remove ultimo elemento da pilha e vai pro proximo token
+                    this.permStack.pop();
+
+
+                    //adiciona o valor do token na arvore
+                    parseTree.root.findRightmostEmptyTerminal().value = currToken.text;
+
+                    break;
+
+                } else {
+                    return(`Erro sintático, esperava por ${TerminalTypes.revMap[stackTop.type]} e apareceu ${TerminalTypes.revMap[currToken.type]}`);
+                }
+            }
+
+            else if (stackTop instanceof Nonterminal) {
+                //caso nao tenha nenhuma regra para essa combinação de terminal e nao terminal
+                if (this.parsingTable[stackTop][currToken.type].length === 0) {
+                    return(`Erro sintático, esperava por ${this.firstSet[stackTop.type].display()} e apareceu ${TerminalTypes.revMap[currToken.type]}`);
+
+                    //return(`Erro sintático, caractere inesperado para resolver não-terminal ${stackTop.type}: ${TerminalTypes.revMap[currToken.type]}`);
+                }
+                else if (this.parsingTable[stackTop][currToken.type].length === 1) {
+                    //remove ultimo elemento da pilha e substitui com os simbolos da regra
+                    this.permStack.pop();
+
+                    const rightMostNode = parseTree.root.findRightmostEmptyNonterminal();
+
+                    for (const s of [...this.parsingTable[stackTop][currToken.type][0]].reverse()) {
+                        if (s !== EPSILON) {
+                            this.permStack.push(s);
+                            if (rightMostNode != null) {
+                                //console.log(rightMostNode.symbol, s, currToken);
+
+                                // adiciona simbolo à arvore
+                                if (s instanceof Nonterminal) {
+                                    const node = new NonterminalNode(s);
+                                    rightMostNode.addNonterminal(node);
+                                }
+                                else if (s instanceof Terminal) {
+                                    const node = new TerminalNode(s);
+                                    rightMostNode.addTerminal(node);
+                                }
+                            }
+                            else {
+                                return('Algo de errado na árvore sintática');
+                            }
+                        }
+                        //caso regra seja epsilon adiciona o no epsilon terminal
+                        else {
+                            if (rightMostNode != null) {
+                                const node = new TerminalNode(s);
+                                rightMostNode.addTerminal(node);
+                            }
+                        }
+                    }
+                }
+            }
+            else if (stackTop === EOF) {
+                return null;
+            }
+            else {
+                return(`Tem algo errado com a tabela de parsing. ${TerminalTypes.revMap[stackTop.type]}`);
+            }
+            stackTop = this.permStack[this.permStack.length - 1];
+        }
+        
+        return null;
+    }
+
+    parseAll(sentence) {
         if (!this.checkIfLL1()) {
             console.log('Erro, gramática não é LL(1)!');
             return null;
@@ -227,7 +346,6 @@ class Grammar {
                             bitLimit = 26;
                         }
                         if (bitCount > bitLimit) {
-                            console.log(currToken.text)
                             console.log(`Erro sintático, esperava por um número de ${bitLimit} bits e apareceu  um de ${bitCount} bits na posição ${i}`);
                             return null;
                         }
@@ -235,12 +353,7 @@ class Grammar {
                         //adiciona o valor do token na arvore
                         parseTree.root.findRightmostEmptyTerminal().value = currToken.text;
 
-                        if (i < size) {
-                            currToken = sentence[i];
-                        } else {
-                            currToken = EOF;
-                        }
-
+                        currToken = sentence[i];
                     }
                     else if (stackTop.type === currToken.type) {
                         // remove ultimo elemento da pilha e vai pro proximo token
@@ -250,13 +363,9 @@ class Grammar {
                         //adiciona o valor do token na arvore
                         parseTree.root.findRightmostEmptyTerminal().value = currToken.text;
 
-                        if (i < size) {
-                            currToken = sentence[i];
-                        } else {
-                            currToken = EOF;
-                        }
-
-                    } else {
+                        currToken = sentence[i];
+                    }
+                    else {
                         console.log(`Erro sintático, esperava por ${TerminalTypes.revMap[stackTop.type]} e apareceu ${TerminalTypes.revMap[currToken.type]} na posição ${i}`);
                         return null;
                     }

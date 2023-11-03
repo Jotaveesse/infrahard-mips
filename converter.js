@@ -72,7 +72,6 @@ function convert(parseNode) {
             else {
                 segments.OPCODE = parseInt(codes[inst.symbol.type], 16);
             }
-            console.log(segments)
 
             let binaryCode;
 

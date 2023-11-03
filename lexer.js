@@ -1,13 +1,17 @@
+const emptyChars = [' ', '\t', '\r', '\f'];
 class Lexer {
     constructor(input) {
         this.source = input;
         this.curChar = '';
         this.curPos = -1;
+        this.curLine = 0;
+        this.curColumn = 0;
         this.nextChar();
     }
 
     nextChar() {
         this.curPos++;
+        this.curColumn++;
         if (this.curPos >= this.source.length) {
             this.curChar = '\u0000'; // EOF
         } else {
@@ -28,7 +32,6 @@ class Lexer {
     }
 
     skipWhitespace() {
-        const emptyChars = [' ', '\t', '\r', '\f'];
         while (emptyChars.includes(this.curChar)) {
             this.nextChar();
         }
@@ -54,35 +57,44 @@ class Lexer {
         let token = null;
 
         if (this.curChar === "\u0000") {
-            token = new Token(this.curChar, TerminalTypes.map.EOF);
+            token = new Token(this.curChar, TerminalTypes.map.EOF, this.curLine, this.curColumn);
         } else if (this.curChar === '\n') {
-            token = new Token(this.curChar, TerminalTypes.map.NEWLINE);
+            token = new Token(this.curChar, TerminalTypes.map.NEWLINE, this.curLine, this.curColumn);
+            this.curLine++;
+            this.curColumn = 0;
         }
         else if (this.curChar === ',') {
-            token = new Token(this.curChar, TerminalTypes.map.COMMA);
+            token = new Token(this.curChar, TerminalTypes.map.COMMA, this.curLine, this.curColumn);
         } else if (this.curChar === ':') {
-            token = new Token(this.curChar, TerminalTypes.map.COLON);
+            token = new Token(this.curChar, TerminalTypes.map.COLON, this.curLine, this.curColumn);
         } else if (this.curChar === '(') {
-            token = new Token(this.curChar, TerminalTypes.map.L_PAREN);
+            token = new Token(this.curChar, TerminalTypes.map.L_PAREN, this.curLine, this.curColumn);
         } else if (this.curChar === ')') {
-            token = new Token(this.curChar, TerminalTypes.map.R_PAREN);
+            token = new Token(this.curChar, TerminalTypes.map.R_PAREN, this.curLine, this.curColumn);
         } else if (this.curChar === '-' || isNum(this.curChar)) {
             const startPos = this.curPos;
 
             //caso seja um numero negativo
             if (this.curChar === '-' && isNaN(this.peek())) {
-                this.abort("Caractere não reconhecido: " + this.curChar);
+                throw new TokenError(errorTypes.notAToken, { line: this.curLine, ch: this.curColumn - 1 },
+                    { line: this.curLine, ch: this.curColumn + 1 }, this.curChar + this.peek());
             }
             //nao aceita numero de multiplos digitos começados por 0
             else if (this.curChar === '0' && isNum(this.peek())) {
-                this.abort("Caractere não reconhecido: " + this.curChar);
+                throw new TokenError(errorTypes.zeroStart, { line: this.curLine, ch: this.curColumn - 1 },
+                    { line: this.curLine, ch: this.curColumn + 1 }, this.curChar + this.peek());
             } else {
                 while (isNum(this.peek())) {
                     this.nextChar();
                 }
-
                 const text = this.source.substring(startPos, this.curPos + 1);
-                token = new Token(text, TerminalTypes.map.NUMBER);
+
+                //se vier alguma letra apos o numero
+                if (this.peek().match(/[a-zA-Z_]/))
+                    throw new TokenError(errorTypes.invalidKeyword, { line: this.curLine, ch: this.curColumn - text.length },
+                        { line: this.curLine, ch: this.curColumn+1 }, text+this.peek());
+
+                token = new Token(text, TerminalTypes.map.NUMBER, this.curLine, this.curColumn);
             }
         } else if (this.curChar === '$') {
             const startPos = this.curPos;
@@ -90,15 +102,23 @@ class Lexer {
 
             //nao aceita numero de multiplos digitos começados por 0
             if (this.curChar === '0' && isNum(this.peek())) {
-                console.log(isNum(this.peek()))
-                this.abort("Caractere não reconhecido: " + this.curChar);
-            } else {
+                throw new TokenError(errorTypes.zeroStart, { line: this.curLine, ch: this.curColumn - 1 },
+                    { line: this.curLine, ch: this.curColumn + 1 }, this.curChar + this.peek());
+            }
+            else {
                 while (isNum(this.peek())) {
                     this.nextChar();
                 }
 
                 const text = this.source.substring(startPos, this.curPos + 1);
-                token = new Token(text, TerminalTypes.map.REG);
+
+                //se o numero do registrador for maior que 32
+                if (removeCharacter(text, '$') <= 32)
+                    token = new Token(text, TerminalTypes.map.REG, this.curLine, this.curColumn);
+                else {
+                    throw new TokenError(errorTypes.invalidReg, { line: this.curLine, ch: this.curColumn - text.length },
+                        { line: this.curLine, ch: this.curColumn }, text);
+                }
             }
         } else if (this.curChar.match(/[a-zA-Z_]/)) {
             const startPos = this.curPos;
@@ -113,13 +133,15 @@ class Lexer {
 
             const kind = Token.checkIfKeyword(text);
             if (kind === null) {
-                this.abort("Keyword não reconhecida: " + text);
-                //token = new Token(text, TokenType.map.IDENT);
+                throw new TokenError(errorTypes.invalidKeyword, { line: this.curLine, ch: this.curColumn - text.length },
+                    { line: this.curLine, ch: this.curColumn }, text);
             } else {
-                token = new Token(text, kind);
+                token = new Token(text, kind, this.curLine, this.curColumn);
             }
 
         } else {
+            throw new TokenError(errorTypes.invalidCharacter, { line: this.curLine, ch: this.curColumn-1 },
+                { line: this.curLine, ch: this.curColumn }, this.curChar);
             this.abort("Caractere não reconhecido: " + this.curChar);
         }
 
@@ -129,9 +151,11 @@ class Lexer {
 }
 
 class Token {
-    constructor(tokenText, tokenKind) {
+    constructor(tokenText, tokenKind, line = 0, column = 0) {
         this.text = tokenText;
         this.type = tokenKind;
+        this.line = line;
+        this.column = column - tokenText.length;
     }
 
     static checkIfKeyword(word) {
@@ -145,11 +169,11 @@ class Token {
         }
         return null;
     }
-   
+
 }
 
-Token.prototype.toString = function() {
-       
+Token.prototype.toString = function () {
+
     for (const key in TerminalTypes.map) {
         if (TerminalTypes.map.hasOwnProperty(key) && TerminalTypes[key] === this.type) {
             return key;

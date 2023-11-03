@@ -1,4 +1,17 @@
-textarea{
-    height:200px;
-    width:400px;
+textarea {
+    height: 200px;
+    width: 400px;
+}
+
+.main {
+    display: flex;
+    column-gap: 12px;
+}
+
+.main > * {
+width:50%;
+}
+
+.highlighted{
+    background-color:#b53;
 }

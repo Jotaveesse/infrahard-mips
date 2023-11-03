@@ -35,7 +35,7 @@ class Terminal extends Symbol {
 
 class SpecialSymbol extends Symbol {
     constructor(name, type) {
-            super(name, type);
+        super(name, type);
     }
 }
 
@@ -48,6 +48,41 @@ class Rule {
     toString() {
         return `${this.nonterminal} -> ${this.production.join(' ')}`;
     }
+}
+const errorTypes = {
+    notAToken: 1,
+    zeroStart: 2,
+    invalidReg: 3,
+    invalidKeyword: 4,
+    invalidCharacter: 5,
+}
+
+class TokenError extends Error {
+    constructor(errorType, startPos, endPos, var1 = null, var2 = null) {
+        super();
+        this.errorType = errorType;
+        this.startPos = startPos;
+        this.endPos = endPos;
+        this.var1 = var1;
+        this.var2 = var2;
+        this.name = this.generateMessage();
+    }
+
+    generateMessage() {
+        switch (this.errorType) {
+            case errorTypes.notAToken:
+                return `Token '${this.var1}' não reconhecido`;
+            case errorTypes.zeroStart:
+                return `Número iniciado por zero: '${this.var1}'`;
+            case errorTypes.invalidReg:
+                return `Registrador '${this.var1}' inválido`;
+            case errorTypes.invalidKeyword:
+                return `Identificador '${this.var1}' inválido`;
+            case errorTypes.invalidCharacter:
+                return `Caractere '${this.var1}' inválido`;
+        }
+    }
+
 }
 
 const TerminalTypes = new TwoWayMap({
@@ -275,3 +310,13 @@ const grammarProductions = [
     new Rule(nt_symbols.OFFSET, [t_symbols.OFFSET]),
     new Rule(nt_symbols.ADDRESS, [t_symbols.ADDRESS]),
 ];
+
+Set.prototype.display = function () {
+    const arr = Array.from(this);
+    const modArr = arr.map((elem) => { return TerminalTypes.revMap[elem.type]; });
+    if (modArr.length <= 1) {
+        return modArr.join(', ');
+    }
+    const lastElement = modArr.pop();
+    return modArr.join(', ') + ' ou ' + lastElement;
+};

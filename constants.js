@@ -55,9 +55,13 @@ const errorTypes = {
     invalidReg: 3,
     invalidKeyword: 4,
     invalidCharacter: 5,
+    invalidToken: 6,
+    negativeNumber: 7,
+    tooManyBits: 8,
+    tableError: 9,
 }
 
-class TokenError extends Error {
+class CompilingError extends Error {
     constructor(errorType, startPos, endPos, var1 = null, var2 = null) {
         super();
         this.errorType = errorType;
@@ -80,6 +84,14 @@ class TokenError extends Error {
                 return `Identificador '${this.var1}' inválido`;
             case errorTypes.invalidCharacter:
                 return `Caractere '${this.var1}' inválido`;
+            case errorTypes.invalidToken:
+                return (`Esperava por ${this.var1} e apareceu ${this.var2}`);
+            case errorTypes.negativeNumber:
+                return (`Esperava por um número positivo e apareceu ${this.var1}`);
+            case errorTypes.tooManyBits:
+                return (`Esperava por um número de no máximo ${this.var1} bits e apareceu um de ${this.var2} bits`);
+            case errorTypes.tableError:
+                return (`Tem algo errado com a tabela de parsing no não-terminal ${this.var1}`);
         }
     }
 
@@ -319,4 +331,12 @@ Set.prototype.display = function () {
     }
     const lastElement = modArr.pop();
     return modArr.join(', ') + ' ou ' + lastElement;
+};
+
+Array.prototype.display = function () {
+    if (this.length <= 1) {
+        return this.join(', ');
+    }
+    const lastElement = this.pop();
+    return this.join(', ') + ' ou ' + lastElement;
 };

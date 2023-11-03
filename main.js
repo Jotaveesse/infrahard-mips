@@ -40,7 +40,7 @@ function compile(source) {
     for (const mark of marks) {
         mark.clear();
     }
-    
+
     const grammar = new Grammar(grammarProductions, nt_symbols.S);
     const parseTree = new ParseTree(this.startSymbol);
 
@@ -53,11 +53,11 @@ function compile(source) {
 
     while (true) {
         try {
-            //console.log(token)
             token = lexer.getToken();
             tokens.push(token);
-        } catch (error) {
-            tokenError=error;
+        }
+        catch (error) {
+            tokenError = error;
             handleError(tokenError);
             break;
         }
@@ -66,39 +66,41 @@ function compile(source) {
         if (token == null)
             break;
 
-        parseError = grammar.parseToken(token, parseTree);
-        //break;
-        if (parseError) {
-            console.log(`Linha ${token.line}, coluna ${token.column}`);
-            console.log(parseError);
+        try {
+            grammar.parseToken(token, parseTree);
+        }
+        catch (error) {
+            parseError = error;
+            console.log(error)
+            handleError(parseError);
             break;
         }
+
         if (token.type === TerminalTypes.map.EOF) {
             break;
         }
     }
 
     console.log('tokens: ', tokens);
+    console.log(grammar.parsingTable)
 
     var binary;
     if (!parseError && !tokenError) {
         binary = convert(parseTree.root);
         outputTextArea.value = binary;
         outputEditor.setValue(outputTextArea.value);
-    }
-    else {
-        handleError(token, parseError);
-    }
 
-    const parsedTree2 = grammar.parseAll(tokens);
-    const binary2 = convert(parsedTree2.root);
 
-    console.log(binary === binary2)
-    //parse(tokens);
+        const parsedTree2 = grammar.parseAll(tokens);
+        const binary2 = convert(parsedTree2.root);
+
+        console.log(binary === binary2)
+        //parse(tokens);
+    }
 }
 
 function handleError(error) {
-    outputTextArea.value = `Linha ${error.startPos.line+1}, coluna ${error.startPos.ch+1}\n${error.name}`;
+    outputTextArea.value = `Linha ${error.startPos.line + 1}, coluna ${error.startPos.ch + 1}\n${error.name}`;
     outputEditor.setValue(outputTextArea.value);
 
 

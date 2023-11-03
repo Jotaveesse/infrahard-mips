@@ -76,12 +76,12 @@ class Lexer {
 
             //caso seja um numero negativo
             if (this.curChar === '-' && isNaN(this.peek())) {
-                throw new TokenError(errorTypes.notAToken, { line: this.curLine, ch: this.curColumn - 1 },
+                throw new CompilingError(errorTypes.notAToken, { line: this.curLine, ch: this.curColumn - 1 },
                     { line: this.curLine, ch: this.curColumn + 1 }, this.curChar + this.peek());
             }
             //nao aceita numero de multiplos digitos começados por 0
             else if (this.curChar === '0' && isNum(this.peek())) {
-                throw new TokenError(errorTypes.zeroStart, { line: this.curLine, ch: this.curColumn - 1 },
+                throw new CompilingError(errorTypes.zeroStart, { line: this.curLine, ch: this.curColumn - 1 },
                     { line: this.curLine, ch: this.curColumn + 1 }, this.curChar + this.peek());
             } else {
                 while (isNum(this.peek())) {
@@ -91,7 +91,7 @@ class Lexer {
 
                 //se vier alguma letra apos o numero
                 if (this.peek().match(/[a-zA-Z_]/))
-                    throw new TokenError(errorTypes.invalidKeyword, { line: this.curLine, ch: this.curColumn - text.length },
+                    throw new CompilingError(errorTypes.invalidKeyword, { line: this.curLine, ch: this.curColumn - text.length },
                         { line: this.curLine, ch: this.curColumn+1 }, text+this.peek());
 
                 token = new Token(text, TerminalTypes.map.NUMBER, this.curLine, this.curColumn);
@@ -102,7 +102,7 @@ class Lexer {
 
             //nao aceita numero de multiplos digitos começados por 0
             if (this.curChar === '0' && isNum(this.peek())) {
-                throw new TokenError(errorTypes.zeroStart, { line: this.curLine, ch: this.curColumn - 1 },
+                throw new CompilingError(errorTypes.zeroStart, { line: this.curLine, ch: this.curColumn - 1 },
                     { line: this.curLine, ch: this.curColumn + 1 }, this.curChar + this.peek());
             }
             else {
@@ -116,7 +116,7 @@ class Lexer {
                 if (removeCharacter(text, '$') <= 32)
                     token = new Token(text, TerminalTypes.map.REG, this.curLine, this.curColumn);
                 else {
-                    throw new TokenError(errorTypes.invalidReg, { line: this.curLine, ch: this.curColumn - text.length },
+                    throw new CompilingError(errorTypes.invalidReg, { line: this.curLine, ch: this.curColumn - text.length },
                         { line: this.curLine, ch: this.curColumn }, text);
                 }
             }
@@ -133,14 +133,14 @@ class Lexer {
 
             const kind = Token.checkIfKeyword(text);
             if (kind === null) {
-                throw new TokenError(errorTypes.invalidKeyword, { line: this.curLine, ch: this.curColumn - text.length },
+                throw new CompilingError(errorTypes.invalidKeyword, { line: this.curLine, ch: this.curColumn - text.length },
                     { line: this.curLine, ch: this.curColumn }, text);
             } else {
                 token = new Token(text, kind, this.curLine, this.curColumn);
             }
 
         } else {
-            throw new TokenError(errorTypes.invalidCharacter, { line: this.curLine, ch: this.curColumn-1 },
+            throw new CompilingError(errorTypes.invalidCharacter, { line: this.curLine, ch: this.curColumn-1 },
                 { line: this.curLine, ch: this.curColumn }, this.curChar);
             this.abort("Caractere não reconhecido: " + this.curChar);
         }

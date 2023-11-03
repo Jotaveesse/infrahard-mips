@@ -18,6 +18,7 @@ class Grammar {
         this.followSet = {};
         this.parsingTable = {};
 
+        //TODO reiniciair perm stack
         this.permStack = [EOF, this.startSymbol];;
 
         this.buildFirstSets();
@@ -183,6 +184,8 @@ class Grammar {
 
     parseToken(currToken, parseTree) {
         let stackTop = this.permStack[this.permStack.length - 1];
+        const startPos = { line: currToken.line, ch: currToken.column };
+        const endPos = { line: currToken.line, ch: currToken.column + currToken.text.length };
 
         while (true) {
             //converte os tokens number para tipos numericos especificos
@@ -193,14 +196,21 @@ class Grammar {
                     currToken.type = TerminalTypes.map.SHAMT;
                 else if (stackTop.type == TerminalTypes.map.ADDRESS || stackTop.type == NonterminalTypes.T6)
                     currToken.type = TerminalTypes.map.ADDRESS;
-                else{
-                return(`Erro sintático, esperava por ${this.firstSet[stackTop.type].display()} e apareceu ${TerminalTypes.revMap[currToken.type]}`);
+                else {
+                    console.log('hu')
+
+                    const validTerminals=this.parsingTable[stackTop];
+                    const validTokens = Object.keys(validTerminals).filter((key) => validTerminals[key].length > 0).map((val)=>TerminalTypes.revMap[val]);
+                    
+                    throw new CompilingError(errorTypes.invalidToken, startPos, endPos,
+                        validTokens.display(), TerminalTypes.revMap[currToken.type]);
                 }
             }
 
             if (stackTop instanceof Terminal) {
+                //TODO melhorar isso
                 if (currToken.type === TerminalTypes.map.SHAMT || currToken.type === TerminalTypes.map.OFFSET || currToken.type === TerminalTypes.map.ADDRESS) {
-                    const bitCount = countBits(currToken.text);
+                    var bitCount = countBits(currToken.text);
 
                     // remove ultimo elemento da pilha e vai pro proximo token
                     this.permStack.pop();
@@ -208,18 +218,20 @@ class Grammar {
                     let bitLimit;
                     if (currToken.type === TerminalTypes.map.SHAMT) {
                         if (currToken.text < 0) {
-                            return('Erro sintático, esperava por um número positivo e apareceu um negativo');
+                            throw new CompilingError(errorTypes.negativeNumber, startPos, endPos, currToken.text);
                         }
-                        bitLimit = 6;   //6 ao inves de 5 pq so aceita os numeros positivos
+                        bitLimit = 5;
+                        bitCount--;     //reduz bitcount pq so aceita os numeros positivos
                     }
-                    if (currToken.type === TerminalTypes.map.OFFSET) {
+                    else if (currToken.type === TerminalTypes.map.OFFSET) {
                         bitLimit = 16;
                     }
-                    if (currToken.type === TerminalTypes.map.ADDRESS) {
+                    else if (currToken.type === TerminalTypes.map.ADDRESS) {
                         bitLimit = 26;
                     }
+
                     if (bitCount > bitLimit) {
-                        return(`Erro sintático, esperava por um número de no máximo ${bitLimit} bits e apareceu um de ${bitCount} bits`);
+                        throw new CompilingError(errorTypes.tooManyBits, startPos, endPos, bitLimit, bitCount);
                     }
 
                     //adiciona o valor do token na arvore
@@ -239,24 +251,31 @@ class Grammar {
                     break;
 
                 } else {
-                    return(`Erro sintático, esperava por ${TerminalTypes.revMap[stackTop.type]} e apareceu ${TerminalTypes.revMap[currToken.type]}`);
+                    throw new CompilingError(errorTypes.invalidToken, startPos, endPos,
+                        this.firstSet[stackTop.type].display(), TerminalTypes.revMap[currToken.type]);
                 }
             }
 
             else if (stackTop instanceof Nonterminal) {
+                const validProds = this.parsingTable[stackTop][currToken.type];
+
                 //caso nao tenha nenhuma regra para essa combinação de terminal e nao terminal
-                if (this.parsingTable[stackTop][currToken.type].length === 0) {
-                    return(`Erro sintático, esperava por ${this.firstSet[stackTop.type].display()} e apareceu ${TerminalTypes.revMap[currToken.type]}`);
+                if (validProds.length === 0) {
+                    const validTerminals=this.parsingTable[stackTop];
+                    const validTokens = Object.keys(validTerminals).filter((key) => validTerminals[key].length > 0).map((val)=>TerminalTypes.revMap[val]);
+                    
+                    throw new CompilingError(errorTypes.invalidToken, startPos, endPos,
+                        validTokens.display(), TerminalTypes.revMap[currToken.type]);
 
                     //return(`Erro sintático, caractere inesperado para resolver não-terminal ${stackTop.type}: ${TerminalTypes.revMap[currToken.type]}`);
                 }
-                else if (this.parsingTable[stackTop][currToken.type].length === 1) {
+                else if (validProds.length === 1) {
                     //remove ultimo elemento da pilha e substitui com os simbolos da regra
                     this.permStack.pop();
 
                     const rightMostNode = parseTree.root.findRightmostEmptyNonterminal();
 
-                    for (const s of [...this.parsingTable[stackTop][currToken.type][0]].reverse()) {
+                    for (const s of [...validProds[0]].reverse()) {
                         if (s !== EPSILON) {
                             this.permStack.push(s);
                             if (rightMostNode != null) {
@@ -273,7 +292,7 @@ class Grammar {
                                 }
                             }
                             else {
-                                return('Algo de errado na árvore sintática');
+                                return ('Algo de errado na árvore sintática');
                             }
                         }
                         //caso regra seja epsilon adiciona o no epsilon terminal
@@ -287,15 +306,15 @@ class Grammar {
                 }
             }
             else if (stackTop === EOF) {
-                return null;
+                break;
             }
             else {
-                return(`Tem algo errado com a tabela de parsing. ${TerminalTypes.revMap[stackTop.type]}`);
+                throw new CompilingError(errorTypes.tableError, startPos, endPos, TerminalTypes.revMap[currToken.type]);
             }
+
+            //avança pro proximo elemento da stack
             stackTop = this.permStack[this.permStack.length - 1];
         }
-        
-        return null;
     }
 
     parseAll(sentence) {

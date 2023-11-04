@@ -1,47 +1,51 @@
-const codes = {
-    ADD: '20',
-    AND: '24',
-    DIV: '1a',
-    MULT: '18',
-    JR: '8',
-    MFHI: '10',
-    MFLO: '12',
-    SLL: '0',
-    SLLV: '4',
-    SLT: '2a',
-    SRA: '3',
-    SRAV: '7',
-    SRL: '2',
-    SUB: '22',
-    BREAK: 'd',
-    RTE: '13',
-    ADDI: '8',
-    ADDIU: '9',
-    BEQ: '4',
-    BNE: '5',
-    BLE: '6',
-    BGT: '7',
-    LB: '20',
-    LH: '21',
-    LUI: 'f',
-    LW: '23',
-    SB: '28',
-    SH: '29',
-    SLTI: 'a',
-    SW: '2b',
-    J: '2',
-    JAL: '3',
+function intToMinDigitsString(number, minDigits) {
+    const numberString = number.toString();
+    const padding = '0'.repeat(Math.max(0, minDigits - numberString.length));
+    return padding + numberString;
+  }
+
+function getInstString(suffix, inst, segs) {
+    inst= inst.toLowerCase();
+    switch (suffix) {
+        case NonterminalTypes.T1:
+            return inst;
+        case NonterminalTypes.T2:
+            return `${inst} $${segs.RS}`;
+        case NonterminalTypes.T3:
+            return `${inst} $${segs.RD}`;
+        case NonterminalTypes.T4:
+            return `${inst} $${segs.RS}, $${segs.RT}`;
+        case NonterminalTypes.T5:
+            return `${inst} $${segs.RD}, $${segs.RS}, $${segs.RT}`;
+        case NonterminalTypes.T6:
+            return `${inst} ${segs.ADDRESS}`;
+        case NonterminalTypes.T7:
+            return `${inst} $${segs.RT}, ${segs.OFFSET}`;
+        case NonterminalTypes.T8:
+            return `${inst} $${segs.RD}, $${segs.RT}, ${segs.SHAMT}`;
+        case NonterminalTypes.T9:
+            return `${inst} $${segs.RS}, $${segs.RT}, ${segs.OFFSET}`;
+        case NonterminalTypes.T10:
+            return `${inst} $${segs.RT}, $${segs.RS}, ${segs.OFFSET}`;
+        case NonterminalTypes.T11:
+            return `${inst} $${segs.RT}, ${segs.OFFSET}($${segs.RS})`;
+    }
 }
 
-function convert(parseNode) {
+function convert(rootNode) {
     var converted = [];
+    convRec(rootNode, converted);
 
+    return formatCode(converted);
+}
+
+function convRec(parseNode, converted) {
     // itera sobre todos os nós não terminais da arvore,
     //como a arvore está invertida itera do final para o começo
     for (let i = parseNode.nonterminals.length - 1; i >= 0; i--) {
         const nonterminal = parseNode.nonterminals[i];
 
-        if (nonterminal.symbol.type == 'INST') {
+        if (nonterminal.symbol.type === NonterminalTypes.INST) {
             const format = nonterminal.nonterminals[0];
             const inst = format.nonterminals[0];
             const suffix = inst.nonterminals[0];
@@ -57,55 +61,79 @@ function convert(parseNode) {
                 OFFSET: '0',
                 ADDRESS: '0'
             }
-
-            //extrai os numeros dos registradores, shamt, offset e adress
+            
+            //extrai os numeros dos registradores, shamt, offset e address
             for (const prod of suffix.nonterminals) {
                 if (prod.terminals.length !== 0) {
                     segments[prod.symbol.type] = parseInt(removeCharacter(prod.terminals[0].value, '$'));
                 }
             }
 
-            //console.log(inst.symbol.type)
-            if (format.symbol === nt_symbols.R_FORMAT) {
+            // se for formato R o codigo fica no funct
+            if (format.symbol.type === NonterminalTypes.R_FORMAT) {
                 segments.FUNCT = parseInt(codes[inst.symbol.type], 16);
             }
             else {
                 segments.OPCODE = parseInt(codes[inst.symbol.type], 16);
             }
 
+            const instComment = getInstString(suffix.symbol.type, inst.symbol.type, segments);
+
             let binaryCode;
 
-            if (format.symbol === nt_symbols.R_FORMAT) {
+            if (format.symbol.type === NonterminalTypes.R_FORMAT) {
                 getBinarySegments(segments);
                 binaryCode = segments.OPCODE + segments.RS + segments.RT + segments.RD + segments.SHAMT + segments.FUNCT;
-                binaryCode = addNewlines(binaryCode, 8);
+                binaryCode = formatInstruction(binaryCode, 8, instComment);
 
             }
-            else if (format.symbol === nt_symbols.I_FORMAT) {
+            else if (format.symbol.type === NonterminalTypes.I_FORMAT) {
                 getBinarySegments(segments);
                 binaryCode = segments.OPCODE + segments.RS + segments.RT + segments.OFFSET;
-                binaryCode = addNewlines(binaryCode, 8);
+                binaryCode = formatInstruction(binaryCode, 8, instComment);
 
             }
-            if (format.symbol === nt_symbols.J_FORMAT) {
+            else if (format.symbol.type === NonterminalTypes.J_FORMAT) {
                 getBinarySegments(segments);
                 binaryCode = segments.OPCODE + segments.ADDRESS;
-                binaryCode = addNewlines(binaryCode, 8);
-
+                binaryCode = formatInstruction(binaryCode, 8, instComment);
             }
             converted.push(binaryCode);
         }
         else {
-            converted.push(convert(nonterminal));
+            convRec(nonterminal, converted);
         }
 
     }
-    return converted.join('\n\n');
 }
 
-function addNewlines(inputString, n) {
+function formatCode(instructions) {
+    const initialString = `DEPTH = ${instructions.length * 4};\nWIDTH = 8;\n\nADDRESS_RADIX = DEC;\nDATA_RADIX = BIN;\nCONTENT\nBEGIN\n\n`;
+
+    let mergedLines=[];
+
+    for (let i=0;i< instructions.length;i++ ){
+
+        for (let j=0;j< instructions[i].length;j++) {
+            const addressNum=intToMinDigitsString(i*4 + j, 3);
+            instructions[i][j] = `${addressNum} : ${instructions[i][j]}`;
+        }
+
+        mergedLines[i]= instructions[i].join('\n');
+    }
+
+    let mergedInsts = mergedLines.join('\n\n');
+
+    return initialString + mergedInsts + '\n\nEND;'
+}
+
+function formatInstruction(inputString, n, comment) {
     const regexPattern = new RegExp(`.{1,${n}}`, 'g');
-    return inputString.match(regexPattern).reverse().join('\n');
+    let byteStrings = inputString.match(regexPattern).reverse();
+    byteStrings = byteStrings.map((inst) => inst + ';');
+    byteStrings[0] += ' --' + comment;
+
+    return byteStrings;
 }
 
 function getBinarySegments(segments) {

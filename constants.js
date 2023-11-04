@@ -97,6 +97,43 @@ class CompilingError extends Error {
 
 }
 
+const codes = {
+    ADD: '20',
+    AND: '24',
+    DIV: '1a',
+    MULT: '18',
+    JR: '8',
+    MFHI: '10',
+    MFLO: '12',
+    SLL: '0',
+    SLLV: '4',
+    SLT: '2a',
+    SRA: '3',
+    SRAV: '7',
+    SRL: '2',
+    SUB: '22',
+    BREAK: 'd',
+    RTE: '13',
+    ADDI: '8',
+    ADDIU: '9',
+    BEQ: '4',
+    BNE: '5',
+    BLE: '6',
+    BGT: '7',
+    LB: '20',
+    LH: '21',
+    LUI: 'f',
+    LW: '23',
+    SB: '28',
+    SH: '29',
+    SLTI: 'a',
+    SW: '2b',
+    J: '2',
+    JAL: '3',
+
+    //DIVM:'5',
+}
+
 const TerminalTypes = new TwoWayMap({
     EPSILON: -2,
     EOF: -1,
@@ -145,6 +182,8 @@ const TerminalTypes = new TwoWayMap({
     //Formato J
     J: 300,
     JAL: 301,
+
+    //DIVM:116,
 });
 
 const NonterminalTypes = {
@@ -204,6 +243,8 @@ const NonterminalTypes = {
     SHAMT: 'SHAMT',
     OFFSET: 'OFFSET',
     ADDRESS: 'ADDRESS',
+
+    //DIVM:'DIVM',
 };
 
 const t_symbols = {};
@@ -249,6 +290,8 @@ const grammarProductions = [
     new Rule(nt_symbols.R_FORMAT, [nt_symbols.BREAK]),
     new Rule(nt_symbols.R_FORMAT, [nt_symbols.RTE]),
 
+    //new Rule(nt_symbols.R_FORMAT, [nt_symbols.DIVM]),
+
     new Rule(nt_symbols.I_FORMAT, [nt_symbols.ADDI]),
     new Rule(nt_symbols.I_FORMAT, [nt_symbols.ADDIU]),
     new Rule(nt_symbols.I_FORMAT, [nt_symbols.BEQ]),
@@ -283,6 +326,8 @@ const grammarProductions = [
     new Rule(nt_symbols.SUB, [t_symbols.SUB, nt_symbols.T5]),
     new Rule(nt_symbols.BREAK, [t_symbols.BREAK, nt_symbols.T1]),
     new Rule(nt_symbols.RTE, [t_symbols.RTE, nt_symbols.T1]),
+
+    //new Rule(nt_symbols.DIVM, [t_symbols.DIVM, nt_symbols.T4]),
 
     new Rule(nt_symbols.ADDI, [t_symbols.ADDI, nt_symbols.T10]),
     new Rule(nt_symbols.ADDIU, [t_symbols.ADDIU, nt_symbols.T10]),

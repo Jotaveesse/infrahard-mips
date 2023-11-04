@@ -95,7 +95,6 @@ function compile(source) {
         const binary2 = convert(parsedTree2.root);
 
         console.log(binary === binary2)
-        //parse(tokens);
     }
 }
 
@@ -110,18 +109,18 @@ function handleError(error) {
 }
 
 function parse(tokens) {
-    const grammar = new Grammar(grammarProductions, nt_symbols.S);
+    // const grammar = new Grammar(grammarProductions, nt_symbols.S);
 
-    for (let nt of grammar.nonTerminals) {
-        console.log('FIRST(' + nt + ') = ' + (new Array(...grammar.firstSet[nt]).join(' ')))
-        console.log('FOLLOW(' + nt + ') = ' + (new Array(...grammar.followSet[nt]).join(' ')));
-    }
+    // for (let nt of grammar.nonTerminals) {
+    //     console.log('FIRST(' + nt + ') = ' + (new Array(...grammar.firstSet[nt]).join(' ')))
+    //     console.log('FOLLOW(' + nt + ') = ' + (new Array(...grammar.followSet[nt]).join(' ')));
+    // }
 
-    console.log('parsing table: ', grammar.parsingTable);
-    const parsedTree = grammar.parse(tokens);
-    console.log('tree:', parsedTree);
-    const binary = convert(parsedTree.root);
-    outputTextArea.value = binary;
+    // console.log('parsing table: ', grammar.parsingTable);
+    // const parsedTree = grammar.parse(tokens);
+    // console.log('tree:', parsedTree);
+    // const binary = convert(parsedTree.root);
+    // outputTextArea.value = binary;
 
 }
 

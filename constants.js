@@ -3,8 +3,11 @@ class TwoWayMap {
     constructor(map) {
         this.map = map;
         this.revMap = {};
-        for (const key in map) {
-            const value = map[key];
+        this.update();
+    }
+    update() {
+        for (const key in this.map) {
+            const value = this.map[key];
             this.revMap[value] = key;
         }
     }
@@ -97,42 +100,102 @@ class CompilingError extends Error {
 
 }
 
-const codes = {
-    ADD: '20',
-    AND: '24',
-    DIV: '1a',
-    MULT: '18',
-    JR: '8',
-    MFHI: '10',
-    MFLO: '12',
-    SLL: '0',
-    SLLV: '4',
-    SLT: '2a',
-    SRA: '3',
-    SRAV: '7',
-    SRL: '2',
-    SUB: '22',
-    BREAK: 'd',
-    RTE: '13',
-    ADDI: '8',
-    ADDIU: '9',
-    BEQ: '4',
-    BNE: '5',
-    BLE: '6',
-    BGT: '7',
-    LB: '20',
-    LH: '21',
-    LUI: 'f',
-    LW: '23',
-    SB: '28',
-    SH: '29',
-    SLTI: 'a',
-    SW: '2b',
-    J: '2',
-    JAL: '3',
 
-    //DIVM:'5',
+
+class Instruction {
+    constructor(name, code, format, suffix) {
+        this.name = name.toUpperCase();
+        this.code = code;
+        this.format = format;
+        this.suffix = suffix;
+        this.productions = [];
+
+        this.addToParser();
+    }
+    alreadyExists() {
+        //TODO prevenir caracteres ilegais e  codigos ilegais
+        let nameExists = false;
+
+        nameExists ||= codes[this.name] !== undefined;
+        nameExists ||= t_symbols[this.name] !== undefined;
+        nameExists ||= nt_symbols[this.name] !== undefined;
+        nameExists ||= NonterminalTypes[this.name] !== undefined;
+        nameExists ||= TerminalTypes.map[this.name] !== undefined;
+
+        if (nameExists)
+            return true;
+
+        for (let inst in codes) {
+            if (codes[inst] === this.code) {
+                if (this.format.type == NonterminalTypes.R_FORMAT) {
+                    if (TerminalTypes.map[inst] >= 100 && TerminalTypes.map[inst] < 200)
+                        return true;
+
+                }
+                else {
+                    if (TerminalTypes.map[inst] >= 200 && TerminalTypes.map[inst] < 400)
+                        return true;
+                }
+            }
+        }
+
+        return false;
+    }
+    removeFromParser() {
+        if (!this.alreadyExists)
+            return 'não existe';
+
+        delete codes[this.name];
+        delete TerminalTypes.map[this.name];
+        TerminalTypes.update();
+        delete t_symbols[this.name];
+        delete NonterminalTypes[this.name];
+        delete nt_symbols[this.name];
+
+        for (const rule of this.productions) {
+            const index = grammarProductions.indexOf(rule);
+            if (index !== -1) {
+                grammarProductions.splice(index, 1);
+            }
+        }
+    }
+    addToParser() {
+        if (this.alreadyExists())
+            return 'já existe';
+
+        codes[this.name] = this.code;
+
+        let start;
+        if (this.format.type == NonterminalTypes.R_FORMAT)
+            start = 100;
+        else if (this.format.type == NonterminalTypes.I_FORMAT)
+            start = 200;
+        else if (this.format.type == NonterminalTypes.J_FORMAT)
+            start = 300;
+
+        for (let i = start; i < (start + 100); i++) {
+            if (TerminalTypes.revMap[i] === undefined) {
+                TerminalTypes.map[this.name] = i;
+                TerminalTypes.update();
+                break;
+            }
+        }
+
+
+        t_symbols[this.name] = new Terminal(TerminalTypes.map[this.name]);
+
+        NonterminalTypes[this.name] = this.name;
+        nt_symbols[this.name] = new Nonterminal(NonterminalTypes[this.name]);
+
+        this.productions = [
+            new Rule(this.format, [nt_symbols[this.name]]),
+            new Rule(nt_symbols[this.name], [t_symbols[this.name], this.suffix])
+        ]
+        grammarProductions.push(...this.productions);
+    }
 }
+
+const codes = {}
 
 const TerminalTypes = new TwoWayMap({
     EPSILON: -2,
@@ -146,44 +209,7 @@ const TerminalTypes = new TwoWayMap({
     SHAMT: 6,
     OFFSET: 7,
     ADDRESS: 8,
-    //Formato R
-    ADD: 100,
-    AND: 101,
-    DIV: 102,
-    MULT: 103,
-    JR: 104,
-    MFHI: 105,
-    MFLO: 106,
-    SLL: 107,
-    SLLV: 108,
-    SLT: 109,
-    SRA: 110,
-    SRAV: 111,
-    SRL: 112,
-    SUB: 113,
-    BREAK: 114,
-    RTE: 115,
-    //Formato I
-    ADDI: 200,
-    ADDIU: 201,
-    BEQ: 202,
-    BNE: 203,
-    BLE: 204,
-    BGT: 205,
-    ADDM: 206,
-    LB: 206,
-    LH: 207,
-    LUI: 208,
-    LW: 209,
-    SB: 210,
-    SH: 211,
-    SLTI: 212,
-    SW: 213,
-    //Formato J
-    J: 300,
-    JAL: 301,
 
-    //DIVM:116,
 });
 
 const NonterminalTypes = {
@@ -194,38 +220,6 @@ const NonterminalTypes = {
     R_FORMAT: 'R_FORMAT',
     I_FORMAT: 'I_FORMAT',
     J_FORMAT: 'J_FORMAT',
-    ADD: 'ADD',
-    AND: 'AND',
-    DIV: 'DIV',
-    MULT: 'MULT',
-    JR: 'JR',
-    MFHI: 'MFHI',
-    MFLO: 'MFLO',
-    SLL: 'SLL',
-    SLLV: 'SLLV',
-    SLT: 'SLT',
-    SRA: 'SRA',
-    SRAV: 'SRAV',
-    SRL: 'SRL',
-    SUB: 'SUB',
-    BREAK: 'BREAK',
-    RTE: 'RTE',
-    ADDI: 'ADDI',
-    ADDIU: 'ADDIU',
-    BEQ: 'BEQ',
-    BNE: 'BNE',
-    BLE: 'BLE',
-    BGT: 'BGT',
-    LB: 'LB',
-    LH: 'LH',
-    LUI: 'LUI',
-    LW: 'LW',
-    SB: 'SB',
-    SH: 'SH',
-    SLTI: 'SLTI',
-    SW: 'SW',
-    J: 'J',
-    JAL: 'JAL',
     T1: 'T1',
     T2: 'T2',
     T3: 'T3',
@@ -243,8 +237,6 @@ const NonterminalTypes = {
     SHAMT: 'SHAMT',
     OFFSET: 'OFFSET',
     ADDRESS: 'ADDRESS',
-
-    //DIVM:'DIVM',
 };
 
 const t_symbols = {};
@@ -273,80 +265,6 @@ const grammarProductions = [
     new Rule(nt_symbols.INST, [nt_symbols.I_FORMAT]),
     new Rule(nt_symbols.INST, [nt_symbols.J_FORMAT]),
 
-    new Rule(nt_symbols.R_FORMAT, [nt_symbols.ADD]),
-    new Rule(nt_symbols.R_FORMAT, [nt_symbols.AND]),
-    new Rule(nt_symbols.R_FORMAT, [nt_symbols.DIV]),
-    new Rule(nt_symbols.R_FORMAT, [nt_symbols.MULT]),
-    new Rule(nt_symbols.R_FORMAT, [nt_symbols.JR]),
-    new Rule(nt_symbols.R_FORMAT, [nt_symbols.MFHI]),
-    new Rule(nt_symbols.R_FORMAT, [nt_symbols.MFLO]),
-    new Rule(nt_symbols.R_FORMAT, [nt_symbols.SLL]),
-    new Rule(nt_symbols.R_FORMAT, [nt_symbols.SLLV]),
-    new Rule(nt_symbols.R_FORMAT, [nt_symbols.SLT]),
-    new Rule(nt_symbols.R_FORMAT, [nt_symbols.SRA]),
-    new Rule(nt_symbols.R_FORMAT, [nt_symbols.SRAV]),
-    new Rule(nt_symbols.R_FORMAT, [nt_symbols.SRL]),
-    new Rule(nt_symbols.R_FORMAT, [nt_symbols.SUB]),
-    new Rule(nt_symbols.R_FORMAT, [nt_symbols.BREAK]),
-    new Rule(nt_symbols.R_FORMAT, [nt_symbols.RTE]),
-
-    //new Rule(nt_symbols.R_FORMAT, [nt_symbols.DIVM]),
-
-    new Rule(nt_symbols.I_FORMAT, [nt_symbols.ADDI]),
-    new Rule(nt_symbols.I_FORMAT, [nt_symbols.ADDIU]),
-    new Rule(nt_symbols.I_FORMAT, [nt_symbols.BEQ]),
-    new Rule(nt_symbols.I_FORMAT, [nt_symbols.BNE]),
-    new Rule(nt_symbols.I_FORMAT, [nt_symbols.BLE]),
-    new Rule(nt_symbols.I_FORMAT, [nt_symbols.BGT]),
-    new Rule(nt_symbols.I_FORMAT, [nt_symbols.LB]),
-    new Rule(nt_symbols.I_FORMAT, [nt_symbols.LH]),
-    new Rule(nt_symbols.I_FORMAT, [nt_symbols.LUI]),
-    new Rule(nt_symbols.I_FORMAT, [nt_symbols.LW]),
-    new Rule(nt_symbols.I_FORMAT, [nt_symbols.SB]),
-    new Rule(nt_symbols.I_FORMAT, [nt_symbols.SH]),
-    new Rule(nt_symbols.I_FORMAT, [nt_symbols.SLTI]),
-    new Rule(nt_symbols.I_FORMAT, [nt_symbols.SW]),
-
-    new Rule(nt_symbols.J_FORMAT, [nt_symbols.J]),
-    new Rule(nt_symbols.J_FORMAT, [nt_symbols.JAL]),
-
-    new Rule(nt_symbols.ADD, [t_symbols.ADD, nt_symbols.T5]),
-    new Rule(nt_symbols.AND, [t_symbols.AND, nt_symbols.T5]),
-    new Rule(nt_symbols.DIV, [t_symbols.DIV, nt_symbols.T4]),
-    new Rule(nt_symbols.MULT, [t_symbols.MULT, nt_symbols.T4]),
-    new Rule(nt_symbols.JR, [t_symbols.JR, nt_symbols.T2]),
-    new Rule(nt_symbols.MFHI, [t_symbols.MFHI, nt_symbols.T3]),
-    new Rule(nt_symbols.MFLO, [t_symbols.MFLO, nt_symbols.T3]),
-    new Rule(nt_symbols.SLL, [t_symbols.SLL, nt_symbols.T8]),
-    new Rule(nt_symbols.SLLV, [t_symbols.SLLV, nt_symbols.T5]),
-    new Rule(nt_symbols.SLT, [t_symbols.SLT, nt_symbols.T5]),
-    new Rule(nt_symbols.SRA, [t_symbols.SRA, nt_symbols.T8]),
-    new Rule(nt_symbols.SRAV, [t_symbols.SRAV, nt_symbols.T5]),
-    new Rule(nt_symbols.SRL, [t_symbols.SRL, nt_symbols.T8]),
-    new Rule(nt_symbols.SUB, [t_symbols.SUB, nt_symbols.T5]),
-    new Rule(nt_symbols.BREAK, [t_symbols.BREAK, nt_symbols.T1]),
-    new Rule(nt_symbols.RTE, [t_symbols.RTE, nt_symbols.T1]),
-
-    //new Rule(nt_symbols.DIVM, [t_symbols.DIVM, nt_symbols.T4]),
-
-    new Rule(nt_symbols.ADDI, [t_symbols.ADDI, nt_symbols.T10]),
-    new Rule(nt_symbols.ADDIU, [t_symbols.ADDIU, nt_symbols.T10]),
-    new Rule(nt_symbols.BEQ, [t_symbols.BEQ, nt_symbols.T9]),
-    new Rule(nt_symbols.BNE, [t_symbols.BNE, nt_symbols.T9]),
-    new Rule(nt_symbols.BLE, [t_symbols.BLE, nt_symbols.T9]),
-    new Rule(nt_symbols.BGT, [t_symbols.BGT, nt_symbols.T9]),
-    new Rule(nt_symbols.LB, [t_symbols.LB, nt_symbols.T11]),
-    new Rule(nt_symbols.LH, [t_symbols.LH, nt_symbols.T11]),
-    new Rule(nt_symbols.LUI, [t_symbols.LUI, nt_symbols.T7]),
-    new Rule(nt_symbols.LW, [t_symbols.LW, nt_symbols.T11]),
-    new Rule(nt_symbols.SB, [t_symbols.SB, nt_symbols.T11]),
-    new Rule(nt_symbols.SH, [t_symbols.SH, nt_symbols.T11]),
-    new Rule(nt_symbols.SLTI, [t_symbols.SLTI, nt_symbols.T10]),
-    new Rule(nt_symbols.SW, [t_symbols.SW, nt_symbols.T11]),
-
-    new Rule(nt_symbols.J, [t_symbols.J, nt_symbols.T6]),
-    new Rule(nt_symbols.JAL, [t_symbols.JAL, nt_symbols.T6]),
-
     new Rule(nt_symbols.T1, [EPSILON]),
     new Rule(nt_symbols.T2, [nt_symbols.RS]),
     new Rule(nt_symbols.T3, [nt_symbols.RD]),
@@ -367,6 +285,44 @@ const grammarProductions = [
     new Rule(nt_symbols.OFFSET, [t_symbols.OFFSET]),
     new Rule(nt_symbols.ADDRESS, [t_symbols.ADDRESS]),
 ];
+
+const instructions = [
+    new Instruction('add', '20', nt_symbols.R_FORMAT, nt_symbols.T5),
+    new Instruction('and', '24', nt_symbols.R_FORMAT, nt_symbols.T5),
+    new Instruction('div', '1a', nt_symbols.R_FORMAT, nt_symbols.T4),
+    new Instruction('mult', '18', nt_symbols.R_FORMAT, nt_symbols.T4),
+    new Instruction('jr', '8', nt_symbols.R_FORMAT, nt_symbols.T2),
+    new Instruction('mfhi', '10', nt_symbols.R_FORMAT, nt_symbols.T3),
+    new Instruction('mflo', '12', nt_symbols.R_FORMAT, nt_symbols.T3),
+    new Instruction('sll', '0', nt_symbols.R_FORMAT, nt_symbols.T8),
+    new Instruction('sllv', '4', nt_symbols.R_FORMAT, nt_symbols.T5),
+    new Instruction('slt', '2a', nt_symbols.R_FORMAT, nt_symbols.T5),
+    new Instruction('sra', '3', nt_symbols.R_FORMAT, nt_symbols.T8),
+    new Instruction('srav', '7', nt_symbols.R_FORMAT, nt_symbols.T5),
+    new Instruction('srl', '2', nt_symbols.R_FORMAT, nt_symbols.T8),
+    new Instruction('sub', '22', nt_symbols.R_FORMAT, nt_symbols.T5),
+    new Instruction('break', 'd', nt_symbols.R_FORMAT, nt_symbols.T1),
+    new Instruction('rte', '13', nt_symbols.R_FORMAT, nt_symbols.T1),
+
+    new Instruction('addi', '8', nt_symbols.I_FORMAT, nt_symbols.T10),
+    new Instruction('addiu', '9', nt_symbols.I_FORMAT, nt_symbols.T10),
+    new Instruction('beq', '4', nt_symbols.I_FORMAT, nt_symbols.T9),
+    new Instruction('bne', '5', nt_symbols.I_FORMAT, nt_symbols.T9),
+    new Instruction('ble', '6', nt_symbols.I_FORMAT, nt_symbols.T9),
+    new Instruction('bgt', '7', nt_symbols.I_FORMAT, nt_symbols.T9),
+    new Instruction('lb', '20', nt_symbols.I_FORMAT, nt_symbols.T11),
+    new Instruction('lh', '21', nt_symbols.I_FORMAT, nt_symbols.T11),
+    new Instruction('lui', 'f', nt_symbols.I_FORMAT, nt_symbols.T7),
+    new Instruction('lw', '23', nt_symbols.I_FORMAT, nt_symbols.T11),
+    new Instruction('sb', '28', nt_symbols.I_FORMAT, nt_symbols.T11),
+    new Instruction('sh', '29', nt_symbols.I_FORMAT, nt_symbols.T11),
+    new Instruction('slti', 'a', nt_symbols.I_FORMAT, nt_symbols.T10),
+    new Instruction('sw', '2b', nt_symbols.I_FORMAT, nt_symbols.T11),
+
+    new Instruction('j', '2', nt_symbols.J_FORMAT, nt_symbols.T6),
+    new Instruction('jal', '3', nt_symbols.J_FORMAT, nt_symbols.T6),
+];
+
 
 Set.prototype.display = function () {
     const arr = Array.from(this);

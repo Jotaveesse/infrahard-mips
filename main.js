@@ -83,6 +83,10 @@ function compile(source) {
 
     console.log('tokens: ', tokens);
     console.log(grammar.parsingTable)
+    // for (let nt of grammar.nonTerminals) {
+    //     console.log('FIRST(' + nt + ') = ' + (new Array(...grammar.firstSet[nt]).join(' ')))
+    //     console.log('FOLLOW(' + nt + ') = ' + (new Array(...grammar.followSet[nt]).join(' ')));
+    // }
 
     var binary;
     if (!parseError && !tokenError) {
@@ -106,22 +110,6 @@ function handleError(error) {
     inputEditor.markText(error.startPos, error.endPos, {
         className: 'highlighted',
     });
-}
-
-function parse(tokens) {
-    // const grammar = new Grammar(grammarProductions, nt_symbols.S);
-
-    // for (let nt of grammar.nonTerminals) {
-    //     console.log('FIRST(' + nt + ') = ' + (new Array(...grammar.firstSet[nt]).join(' ')))
-    //     console.log('FOLLOW(' + nt + ') = ' + (new Array(...grammar.followSet[nt]).join(' ')));
-    // }
-
-    // console.log('parsing table: ', grammar.parsingTable);
-    // const parsedTree = grammar.parse(tokens);
-    // console.log('tree:', parsedTree);
-    // const binary = convert(parsedTree.root);
-    // outputTextArea.value = binary;
-
 }
 
 function findKeyByValue(object, value) {

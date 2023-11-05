@@ -7,6 +7,7 @@ var outputEditor;
 var instructionTemplate;
 var instructionList;
 var addInstructionButton;
+var downloadButton;
 
 window.onload = function () {
     inputTextArea = document.getElementById("input-text-area");
@@ -16,46 +17,65 @@ window.onload = function () {
     instructionList = document.getElementById("instruction-list");
     instructionTemplate = document.getElementById("instruction-item-template");
     addInstructionButton = document.getElementById("add-instruction");
+    downloadButton = document.getElementById("download-button");
 
 
     inputEditor = CodeMirror.fromTextArea(inputTextArea, {
         lineNumbers: true,
         mode: 'text/x-perl',
-        matchBrackets: true,
     });
 
     inputEditor.setOption('theme', 'blackboard');
+    inputEditor.setOption('placeholder', 'Insira seu código aqui...');
 
     outputEditor = CodeMirror.fromTextArea(outputTextArea, {
         lineNumbers: true,
         mode: 'text/x-perl',
-        matchBrackets: true,
+        lineWrapping: true,
+        readOnly: true,
     });
 
     outputEditor.setOption('theme', 'blackboard');
+    outputEditor.setOption('placeholder', 'Arquivo .mif sai aqui...');
+
 
     compileButton.addEventListener("click", function () {
-        inputTextArea.value = inputEditor.getValue();
         compile(inputEditor.getValue());
     });
 
     addInstructionButton.addEventListener("click", function () {
-        try{
+        try {
             const newInst = new Instruction('', '', nt_symbols.R_FORMAT, nt_symbols.T1);
             instructions.push(newInst);
             addToInstructionList(newInst);
+            instructionList.scrollTop = instructionList.scrollHeight;
         }
-        catch(error){
+        catch (error) {
 
         }
     });
 
+    downloadButton.addEventListener("click", function () {
+        downloadTextFile(outputEditor.getValue(), 'instrucoes.mif')
+    });
 
+
+    inputEditor.on("change", function () {
+        //atualizar a textarea permite que o texto permanece caso atualiza a pagina
+        inputTextArea.value = inputEditor.getValue();
+
+        const marks = inputEditor.getAllMarks();
+        for (const mark of marks) {
+            mark.clear();
+        }
+    });
+
+
+    //adiciona as instruções padrão ao parser e a lista
     for (let inst of instructions) {
-        inst.addToParser();
         addToInstructionList(inst);
+        inst.addToParser();
     }
-
 
 };
 
@@ -76,10 +96,13 @@ function addToInstructionList(inst) {
     instSuffix.value = inst.suffix.type;
 
     newElem.update = function () {
-        if (instName.value !== inst.name ||
+        const wasChanged = instName.value !== inst.name ||
             instCode.value !== inst.code ||
             nt_symbols[instFormat.value] !== inst.format ||
-            nt_symbols[instSuffix.value] !== inst.suffix) {
+            nt_symbols[instSuffix.value] !== inst.suffix;
+
+        const failedPrev = newElem.classList.contains('failed-instruction');
+        if (wasChanged || failedPrev) {
 
             try {
                 inst.update(instName.value, instCode.value, nt_symbols[instFormat.value], nt_symbols[instSuffix.value]);
@@ -108,8 +131,7 @@ function addToInstructionList(inst) {
 
 function compile(source) {
     for (let elem of instructionList.children) {
-        if (!elem.update()){
-            console.log(elem)
+        if (!elem.update()) {
             return false;
         }
     }
@@ -122,8 +144,7 @@ function compile(source) {
     const grammar = new Grammar(grammarProductions, nt_symbols.S);
     const parseTree = new ParseTree(this.startSymbol);
 
-    var let;
-    var let;
+    let compilingError;
 
     const lexer = new Lexer(source);
     const tokens = [];
@@ -135,8 +156,8 @@ function compile(source) {
             tokens.push(token);
         }
         catch (error) {
-            let = error;
-            handleError(let);
+            compilingError = error;
+            handleError(compilingError);
             break;
         }
 
@@ -148,9 +169,9 @@ function compile(source) {
             grammar.parseToken(token, parseTree);
         }
         catch (error) {
-            let = error;
+            compilingError = error;
             console.log(error)
-            handleError(let);
+            handleError(compilingError);
             break;
         }
 
@@ -167,7 +188,7 @@ function compile(source) {
     // }
 
     let binary;
-    if (!let && !let) {
+    if (!compilingError) {
         binary = convert(parseTree.root);
         outputTextArea.value = binary;
         outputEditor.setValue(outputTextArea.value);
@@ -197,4 +218,23 @@ function findKeyByValue(object, value) {
         }
     }
     return null;
+}
+
+function downloadTextFile(text, fileName) {
+    // Create a Blob with the text content and set its MIME type
+    const blob = new Blob([text], { type: 'text/plain' });
+
+    // Create an object URL for the Blob
+    const url = URL.createObjectURL(blob);
+
+    // Create a temporary anchor element and set its attributes
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+
+    // Programmatically click the anchor to trigger the download
+    a.click();
+
+    // Clean up by revoking the object URL
+    URL.revokeObjectURL(url);
 }

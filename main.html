@@ -2,15 +2,15 @@
 <html>
 
 <head>
-    <title>Mips Compiler</title>
+    <title>Mips to Mif</title>
     <link rel="stylesheet" type="text/css" href="styles.css">
 
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.0/codemirror.min.css">
-    <link rel="stylesheet" href="https://codemirror.net/5/theme/blackboard.css">
+    <link rel="stylesheet" href="codemirror.css">
+    <link rel="stylesheet" href="blackboard.css">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.0/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.0/mode/javascript/javascript.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.54.0/addon/display/placeholder.min.js"></script>
 </head>
 
 <body>
@@ -22,38 +22,37 @@
     <script src="lexer.js"></script>
     <script src="main.js"></script>
 
-
+    <div class="title">
+        <span>Mips para .mif 2023.2</span>
+    </div>
     <div class="main">
-        <textarea id="input-text-area"></textarea>
-        <textarea id="output-text-area"></textarea>
+        <div class="instructions-area">
+            <div id="instruction-list" class="instruction-list"></div>
+            <button id="add-instruction">Adicionar Instrução</button>
+        </div>
+
+        <div class="input-area">
+            <textarea id="input-text-area"></textarea>
+            <button id="compile-button">Compilar</button>
+        </div>
+
+        <div class="output-area">
+            <textarea id="output-text-area"></textarea>
+            <button id="download-button">Baixar</button>
+        </div>
     </div>
 
-    <button id="compile-button">Compile</button>
-    <div id="instruction-list">
-        
-    </div>
-    <button id="add-instruction">Adicionar Instrução</button>
 
-    
     <template id="instruction-item-template">
         <div class="instruction-item">
-            <div class="instruction-name">
-                <input>
-            </div>
-            <div class="instruction-code">
-                <input>
-            </div>
-            <div class="instruction-format">
-                <select class="instruction-format-dropdown">
-                    <option value="R_FORMAT">Formato R</option>
-                    <option value="I_FORMAT">Formato I</option>
-                    <option value="J_FORMAT">Formato J</option>
-                </select>
 
+            <div class="instruction-name">
+                <input placeholder="Instrução">
             </div>
+
             <div class="instruction-suffix">
                 <select id="instruction-suffix-dropdown">
-                    <option value="T1">Vazio</option>
+                    <option value="T1"></option>
                     <option value="T2">rs</option>
                     <option value="T3">rd</option>
                     <option value="T4">rs, rt</option>
@@ -65,13 +64,28 @@
                     <option value="T10">rt, rs, imediato</option>
                     <option value="T11">rt, offset(rs)</option>
                 </select>
+            </div>
 
+            <div class="instruction-code">
+                <input placeholder="Código" >
+                <span class="input-prefix">0x</span>
             </div>
+
+            <div class="instruction-format">
+                <select class="instruction-format-dropdown">
+                    <option value="R_FORMAT">Formato R</option>
+                    <option value="I_FORMAT">Formato I</option>
+                    <option value="J_FORMAT">Formato J</option>
+                </select>
+            </div>
+
             <div class="instruction-delete">
-                <button>Deletar</button>
+                <button>🗙</button>
             </div>
+
         </div>
     </template>
+
 </body>
 
 </html>

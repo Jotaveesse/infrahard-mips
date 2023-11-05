@@ -1,25 +1,188 @@
 textarea {
-    height: 200px;
-    width: 400px;
+    font-size: 20px;
+}
+
+html {
+    height: 100%;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    height: 100%;
+    margin: 0;
+    background-color: #090c16;
+
+}
+
+.title {
+    height: 60px;
+    text-align: center;
+    color: white;
+    font-size: 30px;
+    font-weight: 100;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 60px;
 }
 
 .main {
+    height: calc(100% - 60px);
+    padding: 0px 8px 8px 8px;
     display: flex;
-    column-gap: 12px;
+    background-color: #090c16;
+    column-gap: 2%;
+    box-sizing: border-box;
 }
 
-.main > * {
-width:50%;
+.main *{
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
 }
 
-.highlighted{
-    background-color:#b53;
+.main *::-webkit-scrollbar {
+    display: none;
 }
 
-.instruction-item{
-    display:flex;
+.highlighted {
+    background-color: #b53;
 }
 
-.failed-instruction{
-    background-color:#b53;
+.instructions-area {
+    width: 32%;
+    height: 100%;
+    background-color: #12151d;
+    border-radius: 8px;
+}
+
+.instruction-list {
+    overflow-y: auto;
+    border-radius: 8px 8px 0px 0px;
+    height: calc(100% - 40px);
+    
+    background-color: #090c16;
+
+    display: flex;
+    flex-direction: column;
+    row-gap: 2px;
+    padding-bottom:4px;
+    box-sizing: border-box;
+}
+
+.instruction-item {
+    height: 24px;
+    display: grid;
+    grid-template-columns: calc(20% - 12px) 34% calc(19% - 20px) 27% 24px;
+    grid-column-gap: 2px;
+}
+
+.instruction-item input {
+    height: 100%;
+    width: 100%;
+    color: white;
+    background-color: #12151d;
+    border: none;
+    border-radius: 4px;
+    padding: 0px 4px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    box-sizing: border-box;
+}
+
+.instruction-item input:hover {
+    background-color: #1c2129;
+}
+
+.instruction-code{
+    position:relative;
+}
+
+.instruction-code input{
+    padding-left:17px;
+    font-size:13px;
+}
+
+.input-prefix {
+  color:white;
+  position: absolute;
+  left: 4px; /* Adjust the distance from the input */
+  top: 48%;
+  transform: translateY(-43%);
+  font-size:13px;
+  font-weight:400;
+
+}
+
+.instruction-item input:focus{
+    outline:none;
+}
+
+.instruction-item select {
+    height: 100%;
+    width: 100%;
+    color: white;
+    background-color: #12151d;
+    border: none;
+    border-radius: 4px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg fill='white' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+    background-repeat: no-repeat;
+    background-position-x: 104%;
+}
+
+.instruction-item select:hover {
+    cursor: pointer;
+    background-color: #1c2129;
+}
+
+.instruction-item button {
+    height: 100%;
+    width: 100%;
+    border-radius: 4px;
+    color: white;
+    background-color: #12151d;
+    font-weight:100;
+    border: none;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.instruction-item button:hover {
+    cursor: pointer;
+    background-color: #1c2129;
+}
+
+.input-area, .output-area {
+    width: 32%;
+    height: 100%;
+    background-color: #12151d;
+    border-radius: 8px;
+}
+
+.main .CodeMirror {
+    height: calc(100% - 40px);
+    border-radius: 8px;
+}
+
+.main > * > button{
+    height: 40px;
+    width: 100%;
+    color: white;
+    font-weight: 100;
+    font-size: 18px;
+    background-color: #12151d;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.main > * > button:hover{
+    cursor: pointer;
+    background-color: #1c2129;
+}
+
+.failed-instruction *{
+    background-color: #b53 !important;
 }

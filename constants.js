@@ -144,14 +144,14 @@ class Instruction {
     addToParser() {
         const existsResult = this.alreadyExists();
         if (existsResult) {
-            console.log('já existe')
+            //console.log('já existe')
             throw existsResult;
         }
 
         const invalidResult = this.isInvalid();
 
         if (invalidResult) {
-            console.log('Instrução inválida');
+            //console.log('Instrução inválida');
             throw invalidResult;
         }
 
@@ -195,13 +195,12 @@ class Instruction {
         this.format = format;
         this.suffix = suffix;
         this.productions = [];
-
         return this.addToParser();
     }
 
     removeFromParser() {
         if (!this.alreadyExists()) {
-            console.log('não existe');
+            //console.log('não existe');
             return false;
         }
 

@@ -4,12 +4,18 @@ var compileButton;
 var parseButton;
 var inputEditor;
 var outputEditor;
+var instructionTemplate;
+var instructionList;
+var addInstructionButton;
 
 window.onload = function () {
     inputTextArea = document.getElementById("input-text-area");
     outputTextArea = document.getElementById("output-text-area");
     compileButton = document.getElementById("compile-button");
     parseButton = document.getElementById("parse-button");
+    instructionList = document.getElementById("instruction-list");
+    instructionTemplate = document.getElementById("instruction-item-template");
+    addInstructionButton = document.getElementById("add-instruction");
 
 
     inputEditor = CodeMirror.fromTextArea(inputTextArea, {
@@ -33,9 +39,81 @@ window.onload = function () {
         compile(inputEditor.getValue());
     });
 
+    addInstructionButton.addEventListener("click", function () {
+        try{
+            const newInst = new Instruction('', '', nt_symbols.R_FORMAT, nt_symbols.T1);
+            instructions.push(newInst);
+            addToInstructionList(newInst);
+        }
+        catch(error){
+
+        }
+    });
+
+
+    for (let inst of instructions) {
+        inst.addToParser();
+        addToInstructionList(inst);
+    }
+
+
 };
 
+function addToInstructionList(inst) {
+    const clone = document.importNode(instructionTemplate.content, true);
+    instructionList.appendChild(clone);
+
+    const newElem = instructionList.lastElementChild;
+    const instName = newElem.querySelector('.instruction-name').children[0];
+    const instCode = newElem.querySelector('.instruction-code').children[0];
+    const instFormat = newElem.querySelector('.instruction-format').children[0];
+    const instSuffix = newElem.querySelector('.instruction-suffix').children[0];
+    const deleteButton = newElem.querySelector('.instruction-delete').children[0];
+
+    instName.value = inst.name;
+    instCode.value = inst.code;
+    instFormat.value = inst.format.type;
+    instSuffix.value = inst.suffix.type;
+
+    newElem.update = function () {
+        if (instName.value !== inst.name ||
+            instCode.value !== inst.code ||
+            nt_symbols[instFormat.value] !== inst.format ||
+            nt_symbols[instSuffix.value] !== inst.suffix) {
+
+            try {
+                inst.update(instName.value, instCode.value, nt_symbols[instFormat.value], nt_symbols[instSuffix.value]);
+                newElem.classList.remove('failed-instruction');
+                return true;
+
+            } catch (error) {
+                newElem.classList.add('failed-instruction');
+                outputTextArea.value = `Instrução '${inst.name}' de código '${inst.code}'\n${error.name}`;
+                outputEditor.setValue(outputTextArea.value);
+
+                return false;
+            }
+        }
+        return true;
+    };
+
+    deleteButton.addEventListener("click", function () {
+        inst.removeFromParser();
+        newElem.remove();
+        const index = instructions.indexOf(inst);
+        delete instructions[index];
+    });
+
+}
+
 function compile(source) {
+    for (let elem of instructionList.children) {
+        if (!elem.update()){
+            console.log(elem)
+            return false;
+        }
+    }
+
     const marks = inputEditor.getAllMarks();
     for (const mark of marks) {
         mark.clear();
@@ -44,8 +122,8 @@ function compile(source) {
     const grammar = new Grammar(grammarProductions, nt_symbols.S);
     const parseTree = new ParseTree(this.startSymbol);
 
-    var parseError;
-    var tokenError;
+    var let;
+    var let;
 
     const lexer = new Lexer(source);
     const tokens = [];
@@ -57,8 +135,8 @@ function compile(source) {
             tokens.push(token);
         }
         catch (error) {
-            tokenError = error;
-            handleError(tokenError);
+            let = error;
+            handleError(let);
             break;
         }
 
@@ -70,9 +148,9 @@ function compile(source) {
             grammar.parseToken(token, parseTree);
         }
         catch (error) {
-            parseError = error;
+            let = error;
             console.log(error)
-            handleError(parseError);
+            handleError(let);
             break;
         }
 
@@ -88,8 +166,8 @@ function compile(source) {
     //     console.log('FOLLOW(' + nt + ') = ' + (new Array(...grammar.followSet[nt]).join(' ')));
     // }
 
-    var binary;
-    if (!parseError && !tokenError) {
+    let binary;
+    if (!let && !let) {
         binary = convert(parseTree.root);
         outputTextArea.value = binary;
         outputEditor.setValue(outputTextArea.value);

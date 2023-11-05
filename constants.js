@@ -62,10 +62,18 @@ const errorTypes = {
     negativeNumber: 7,
     tooManyBits: 8,
     tableError: 9,
+
+    nameExists: 10,
+    codeExists: 11,
+    nameInvalid: 12,
+    codeInvalid: 13,
+    formatInvalid: 14,
+    suffixInvalid: 15,
+    codeTooBig: 16,
 }
 
 class CompilingError extends Error {
-    constructor(errorType, startPos, endPos, var1 = null, var2 = null) {
+    constructor(errorType, startPos = null, endPos = null, var1 = null, var2 = null) {
         super();
         this.errorType = errorType;
         this.startPos = startPos;
@@ -88,19 +96,39 @@ class CompilingError extends Error {
             case errorTypes.invalidCharacter:
                 return `Caractere '${this.var1}' inválido`;
             case errorTypes.invalidToken:
-                return (`Esperava por ${this.var1} e apareceu ${this.var2}`);
+                return `Esperava por ${this.var1} e apareceu um ${this.var2}`;
             case errorTypes.negativeNumber:
-                return (`Esperava por um número positivo e apareceu ${this.var1}`);
+                return `Esperava por um número positivo e apareceu '${this.var1}'`;
             case errorTypes.tooManyBits:
-                return (`Esperava por um número de no máximo ${this.var1} bits e apareceu um de ${this.var2} bits`);
+                return `Esperava por um número de no máximo ${this.var1} bits e apareceu um de ${this.var2} bits`;
             case errorTypes.tableError:
-                return (`Tem algo errado com a tabela de parsing no não-terminal ${this.var1}`);
+                return `Tem algo errado com a tabela de parsing no não-terminal ${this.var1}`;
+            case errorTypes.nameExists:
+                return `Nome da instrução já está sendo utilizado`;
+            case errorTypes.codeExists:
+                return `Código já está sendo utilizado na instrução '${this.var2}'`;
+            case errorTypes.nameInvalid:
+                return `Nome da instrução é inválido, utilize apenas letras`;
+            case errorTypes.codeInvalid:
+                return `Código da instrução inválido, não é um número hexadecimal`;
+            case errorTypes.formatInvalid:
+                return `Formato '${this.var2}' da instrução '${this.var1}' inválido`;
+            case errorTypes.suffixInvalid:
+                return `Sufixo '${this.var2}' da instrução '${this.var1}' inválido`;
+            case errorTypes.codeTooBig:
+                return `Código da instrução inválido, o valor deve ser menor que 64 (0x40)`;
+            default:
+                return `Erro de código ${this.errorType}`;
         }
     }
-
 }
 
-
+const instErrorTypes = {
+    invalidName: 1,
+    invalidCode: 2,
+    usedName: 3,
+    usedCode: 4
+}
 
 class Instruction {
     constructor(name, code, format, suffix) {
@@ -110,58 +138,22 @@ class Instruction {
         this.suffix = suffix;
         this.productions = [];
 
-        this.addToParser();
+        //this.addToParser();
     }
-    alreadyExists() {
-        //TODO prevenir caracteres ilegais e  codigos ilegais
-        let nameExists = false;
 
-        nameExists ||= codes[this.name] !== undefined;
-        nameExists ||= t_symbols[this.name] !== undefined;
-        nameExists ||= nt_symbols[this.name] !== undefined;
-        nameExists ||= NonterminalTypes[this.name] !== undefined;
-        nameExists ||= TerminalTypes.map[this.name] !== undefined;
-
-        if (nameExists)
-            return true;
-
-        for (let inst in codes) {
-            if (codes[inst] === this.code) {
-                if (this.format.type == NonterminalTypes.R_FORMAT) {
-                    if (TerminalTypes.map[inst] >= 100 && TerminalTypes.map[inst] < 200)
-                        return true;
-
-                }
-                else {
-                    if (TerminalTypes.map[inst] >= 200 && TerminalTypes.map[inst] < 400)
-                        return true;
-                }
-            }
-        }
-
-        return false;
-    }
-    removeFromParser() {
-        if (!this.alreadyExists)
-            return 'não existe';
-
-        delete codes[this.name];
-        delete TerminalTypes.map[this.name];
-        TerminalTypes.update();
-        delete t_symbols[this.name];
-        delete NonterminalTypes[this.name];
-        delete nt_symbols[this.name];
-
-        for (const rule of this.productions) {
-            const index = grammarProductions.indexOf(rule);
-            if (index !== -1) {
-                grammarProductions.splice(index, 1);
-            }
-        }
-    }
     addToParser() {
-        if (this.alreadyExists())
-            return 'já existe';
+        const existsResult = this.alreadyExists();
+        if (existsResult) {
+            console.log('já existe')
+            throw existsResult;
+        }
+
+        const invalidResult = this.isInvalid();
+
+        if (invalidResult) {
+            console.log('Instrução inválida');
+            throw invalidResult;
+        }
 
         codes[this.name] = this.code;
 
@@ -181,7 +173,6 @@ class Instruction {
             }
         }
 
-
         t_symbols[this.name] = new Terminal(TerminalTypes.map[this.name]);
 
         NonterminalTypes[this.name] = this.name;
@@ -192,6 +183,98 @@ class Instruction {
             new Rule(nt_symbols[this.name], [t_symbols[this.name], this.suffix])
         ]
         grammarProductions.push(...this.productions);
+
+        return true;
+    }
+
+    update(name, code, format, suffix) {
+        this.removeFromParser();
+
+        this.name = name.toUpperCase();
+        this.code = code;
+        this.format = format;
+        this.suffix = suffix;
+        this.productions = [];
+
+        return this.addToParser();
+    }
+
+    removeFromParser() {
+        if (!this.alreadyExists()) {
+            console.log('não existe');
+            return false;
+        }
+
+        delete codes[this.name];
+        delete TerminalTypes.map[this.name];
+        TerminalTypes.update();
+        delete t_symbols[this.name];
+        delete NonterminalTypes[this.name];
+        delete nt_symbols[this.name];
+
+        for (const rule of this.productions) {
+            const index = grammarProductions.indexOf(rule);
+            if (index !== -1) {
+                grammarProductions.splice(index, 1);
+            }
+        }
+
+        this.productions = [];
+    }
+
+    alreadyExists() {
+        let nameExists = false;
+
+        nameExists ||= codes[this.name] !== undefined;
+        nameExists ||= t_symbols[this.name] !== undefined;
+        nameExists ||= nt_symbols[this.name] !== undefined;
+        nameExists ||= NonterminalTypes[this.name] !== undefined;
+        nameExists ||= TerminalTypes.map[this.name] !== undefined;
+
+        if (nameExists)
+            return new CompilingError(errorTypes.nameExists, null, null, this.name);
+
+        for (let inst in codes) {
+            if (codes[inst] === this.code) {
+                if (this.format.type == NonterminalTypes.R_FORMAT) {
+                    if (TerminalTypes.map[inst] >= 100 && TerminalTypes.map[inst] < 200)
+                        return new CompilingError(errorTypes.codeExists, null, null, this.code, inst);
+
+                }
+                else {
+                    if (TerminalTypes.map[inst] >= 200 && TerminalTypes.map[inst] < 400)
+                        return new CompilingError(errorTypes.codeExists, null, null, this.code, inst);
+                }
+            }
+        }
+
+        return false;
+    }
+
+    isInvalid() {
+        const nameRegex = /^[A-Za-z]+$/;
+        const codeRegex = /^[0-9A-Fa-f]+$/;
+        const suffixRegex = /^T\d+$/;
+
+        if (!nameRegex.test(this.name))
+            return new CompilingError(errorTypes.nameInvalid, null, null, this.name);
+
+        if (!codeRegex.test(this.code))
+            return new CompilingError(errorTypes.codeInvalid, null, null, this.name, this.code);
+
+        if (parseInt(this.code, 16) >= 64)
+            return new CompilingError(errorTypes.codeTooBig, null, null, this.name, this.code);
+
+        if (this.suffix === undefined || !suffixRegex.test(this.suffix.type))
+            return new CompilingError(errorTypes.suffixInvalid, null, null, this.name, this.suffix);
+
+        if (this.format.type !== NonterminalTypes.R_FORMAT &&
+            this.format.type !== NonterminalTypes.I_FORMAT &&
+            this.format.type !== NonterminalTypes.J_FORMAT
+        )
+            return new CompilingError(errorTypes.formatInvalid, null, null, this.name, this.format);
+
+        return false;
     }
 }
 

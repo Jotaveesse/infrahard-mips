@@ -142,7 +142,6 @@ class Lexer {
         } else {
             throw new CompilingError(errorTypes.invalidCharacter, { line: this.curLine, ch: this.curColumn-1 },
                 { line: this.curLine, ch: this.curColumn }, this.curChar);
-            this.abort("Caractere não reconhecido: " + this.curChar);
         }
 
         this.nextChar();

@@ -24,12 +24,54 @@
 
 
     <div class="main">
-    <textarea id="input-text-area"></textarea>
-    <textarea id="output-text-area"></textarea>
-</div>
+        <textarea id="input-text-area"></textarea>
+        <textarea id="output-text-area"></textarea>
+    </div>
+
     <button id="compile-button">Compile</button>
+    <div id="instruction-list">
+        
+    </div>
+    <button id="add-instruction">Adicionar Instrução</button>
 
+    
+    <template id="instruction-item-template">
+        <div class="instruction-item">
+            <div class="instruction-name">
+                <input>
+            </div>
+            <div class="instruction-code">
+                <input>
+            </div>
+            <div class="instruction-format">
+                <select class="instruction-format-dropdown">
+                    <option value="R_FORMAT">Formato R</option>
+                    <option value="I_FORMAT">Formato I</option>
+                    <option value="J_FORMAT">Formato J</option>
+                </select>
 
+            </div>
+            <div class="instruction-suffix">
+                <select id="instruction-suffix-dropdown">
+                    <option value="T1">Vazio</option>
+                    <option value="T2">rs</option>
+                    <option value="T3">rd</option>
+                    <option value="T4">rs, rt</option>
+                    <option value="T5">rs, rt, rd</option>
+                    <option value="T6">address</option>
+                    <option value="T7">rt, imediato</option>
+                    <option value="T8">rd, rt, shamt</option>
+                    <option value="T9">rs, rt, offset</option>
+                    <option value="T10">rt, rs, imediato</option>
+                    <option value="T11">rt, offset(rs)</option>
+                </select>
+
+            </div>
+            <div class="instruction-delete">
+                <button>Deletar</button>
+            </div>
+        </div>
+    </template>
 </body>
 
 </html>

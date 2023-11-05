@@ -15,3 +15,11 @@ width:50%;
 .highlighted{
     background-color:#b53;
 }
+
+.instruction-item{
+    display:flex;
+}
+
+.failed-instruction{
+    background-color:#b53;
+}

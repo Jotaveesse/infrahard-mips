@@ -129,7 +129,7 @@ class Lexer {
                     const reg = registers[dollarlessText];
 
                     if (reg !== undefined) {
-                        token = new Token( '$'+reg, TerminalTypes.map.REG, this.curLine, this.curColumn);
+                        token = new Token('$' + reg, TerminalTypes.map.REG, this.curLine, this.curColumn);
                     }
                     else {
                         throw new CompilingError(errorTypes.invalidReg, { line: this.curLine, ch: this.curColumn - text.length },
@@ -151,7 +151,12 @@ class Lexer {
 
             const kind = Token.checkIfKeyword(text);
             if (kind === null) {
-                token = new Token(text, TerminalTypes.map.LABEL, this.curLine, this.curColumn);
+                if (peekChar === ':'){
+                    token = new Token(text, TerminalTypes.map.LABEL_DECL, this.curLine, this.curColumn);
+                    this.nextChar();
+                }
+                else
+                    token = new Token(text, TerminalTypes.map.LABEL, this.curLine, this.curColumn);
 
                 // throw new CompilingError(errorTypes.invalidKeyword, { line: this.curLine, ch: this.curColumn - text.length },
                 //     { line: this.curLine, ch: this.curColumn }, text);

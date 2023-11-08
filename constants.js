@@ -119,7 +119,7 @@ class CompilingError extends Error {
             case errorTypes.suffixInvalid:
                 return `Sufixo '${this.var2}' da instrução '${this.var1}' inválido`;
             case errorTypes.codeTooBig:
-                return `Código da instrução inválido, o valor deve ser menor 0x40 (64)`;
+                return `Código da instrução inválido, o valor deve ser menor que 0x40 (64)`;
                 case errorTypes.invalidLabel:
                 return `Label  '${this.var1}' não inicializada`;
             default:
@@ -298,6 +298,7 @@ const TerminalTypes = new TwoWayMap({
     ADDRESS: 8,
     COLON:9,
     LABEL:10,
+    LABEL_DECL:11,
 });
 
 const NonterminalTypes = {
@@ -349,7 +350,7 @@ const EOF = new SpecialSymbol(TerminalTypes.map.EOF);
 const grammarProductions = [
     new Rule(nt_symbols.S, [nt_symbols.A]),
     new Rule(nt_symbols.A, [nt_symbols.B, nt_symbols.C, nt_symbols.D]),
-    new Rule(nt_symbols.B, [t_symbols.LABEL, t_symbols.COLON]),
+    new Rule(nt_symbols.B, [t_symbols.LABEL_DECL]),
     new Rule(nt_symbols.B, [EPSILON]),
     new Rule(nt_symbols.C, [nt_symbols.INST]),
     new Rule(nt_symbols.C, [EPSILON]),

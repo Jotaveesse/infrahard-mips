@@ -54,8 +54,9 @@ function getLabels(parseNode) {
                 const nonterminal = current.nonterminals[i];
 
                 if (nonterminal.symbol.type === NonterminalTypes.B) {
-                    if (nonterminal.terminals.length === 2) {
-                        labels[nonterminal.terminals[1].value] = instCount;
+                    console.log(nonterminal.terminals)
+                    if (nonterminal.terminals[0].symbol.type === TerminalTypes.map.LABEL_DECL) {
+                        labels[nonterminal.terminals[0].value] = instCount;
                     }
                 }
                 else if (nonterminal.symbol.type === NonterminalTypes.INST) {

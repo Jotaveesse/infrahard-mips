@@ -2,10 +2,10 @@ function intToMinDigitsString(number, minDigits) {
     const numberString = number.toString();
     const padding = '0'.repeat(Math.max(0, minDigits - numberString.length));
     return padding + numberString;
-  }
+}
 
 function getInstString(suffix, inst, segs) {
-    inst= inst.toLowerCase();
+    inst = inst.toLowerCase();
     switch (suffix) {
         case NonterminalTypes.T1:
             return inst;
@@ -34,12 +34,46 @@ function getInstString(suffix, inst, segs) {
 
 function convert(rootNode) {
     var converted = [];
-    convRec(rootNode, converted);
-
+    const labels = getLabels(rootNode);
+    console.log(labels)
+    convRec(rootNode, converted, labels);
     return formatCode(converted);
 }
+function getLabels(parseNode) {
+    const labels = {};
+    const stack = [];
+    var instCount = 0;
 
-function convRec(parseNode, converted) {
+    stack.push(parseNode);
+
+    while (stack.length > 0) {
+        const current = stack.shift();
+
+        if (current.nonterminals) {
+            for (let i = current.nonterminals.length - 1; i >= 0; i--) {
+                const nonterminal = current.nonterminals[i];
+
+                if (nonterminal.symbol.type === NonterminalTypes.B) {
+                    if (nonterminal.terminals.length === 2) {
+                        labels[nonterminal.terminals[1].value] = instCount;
+                    }
+                }
+                else if (nonterminal.symbol.type === NonterminalTypes.INST) {
+                    nonterminal.position = instCount;
+                    instCount++;
+                }
+                else {
+                    stack.push(nonterminal);
+                }
+            }
+        }
+    }
+
+    return labels;
+}
+
+
+function convRec(parseNode, converted, labels) {
     // itera sobre todos os nós não terminais da arvore,
     //como a arvore está invertida itera do final para o começo
     for (let i = parseNode.nonterminals.length - 1; i >= 0; i--) {
@@ -61,11 +95,40 @@ function convRec(parseNode, converted) {
                 OFFSET: '0',
                 ADDRESS: '0'
             }
-            
+
             //extrai os numeros dos registradores, shamt, offset e address
             for (const prod of suffix.nonterminals) {
                 if (prod.terminals.length !== 0) {
-                    segments[prod.symbol.type] = parseInt(removeCharacter(prod.terminals[0].value, '$'));
+
+                    if (prod.symbol.type == NonterminalTypes.T9_1) {
+                        if (prod.terminals[0].symbol.type === TerminalTypes.map.LABEL) {
+                            const labelValue = labels[prod.terminals[0].value];
+                            if (labelValue !== undefined) {
+                                segments.OFFSET = labels[prod.terminals[0].value] - nonterminal.position - 1;
+                            }
+                            else {
+                                throw new CompilingError(errorTypes.invalidLabel, prod.terminals[0].start, prod.terminals[0].end,
+                                    prod.terminals[0].value);
+                            }
+                        }
+                        else
+                            segments.OFFSET = parseInt(prod.terminals[0].value);
+                    }
+
+                    //caso seja caso especial do T6
+                    else if (prod.terminals[0].symbol.type === TerminalTypes.map.LABEL) {
+                        const labelValue = labels[prod.terminals[0].value];
+                        if (labelValue !== undefined) {
+                            segments[prod.symbol.type] = labels[prod.terminals[0].value];
+                        }
+                        else {
+                            throw new CompilingError(errorTypes.invalidLabel, prod.terminals[0].start, prod.terminals[0].end,
+                                prod.terminals[0].value);
+                        }
+                    }
+
+                    else
+                        segments[prod.symbol.type] = parseInt(removeCharacter(prod.terminals[0].value, '$'));
                 }
             }
 
@@ -101,7 +164,7 @@ function convRec(parseNode, converted) {
             converted.push(binaryCode);
         }
         else {
-            convRec(nonterminal, converted);
+            convRec(nonterminal, converted, labels);
         }
 
     }
@@ -110,16 +173,16 @@ function convRec(parseNode, converted) {
 function formatCode(instructions) {
     const initialString = `DEPTH = ${instructions.length * 4};\nWIDTH = 8;\n\nADDRESS_RADIX = DEC;\nDATA_RADIX = BIN;\nCONTENT\nBEGIN\n\n`;
 
-    let mergedLines=[];
+    let mergedLines = [];
 
-    for (let i=0;i< instructions.length;i++ ){
+    for (let i = 0; i < instructions.length; i++) {
 
-        for (let j=0;j< instructions[i].length;j++) {
-            const addressNum=intToMinDigitsString(i*4 + j, 3);
+        for (let j = 0; j < instructions[i].length; j++) {
+            const addressNum = intToMinDigitsString(i * 4 + j, 3);
             instructions[i][j] = `${addressNum} : ${instructions[i][j]}`;
         }
 
-        mergedLines[i]= instructions[i].join('\n');
+        mergedLines[i] = instructions[i].join('\n');
     }
 
     let mergedInsts = mergedLines.join('\n\n');
@@ -148,10 +211,14 @@ function getBinarySegments(segments) {
 }
 
 function numberToBinary(num, size) {
-    var binary = Math.abs(num).toString(2);
+    if (num < 0) {
+        num = (1 << size) + num; // Convert negative number to its two's complement representation
+    }
+
+    var binary = num.toString(2);
 
     while (binary.length < size) {
-        binary = (num >= 0 ? '0' : '1') + binary;
+        binary = '0' + binary;
     }
     return binary;
 }

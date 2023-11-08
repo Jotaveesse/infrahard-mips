@@ -96,12 +96,13 @@ function addToInstructionList(inst) {
     instSuffix.value = inst.suffix.type;
 
     newElem.update = function () {
-        const wasChanged = instName.value !== inst.name ||
+        const wasChanged = instName.value.toUpperCase() !== inst.name ||
             instCode.value !== inst.code ||
             nt_symbols[instFormat.value] !== inst.format ||
             nt_symbols[instSuffix.value] !== inst.suffix;
 
         const failedPrev = newElem.classList.contains('failed-instruction');
+
         if (wasChanged || failedPrev) {
 
             try {
@@ -117,7 +118,7 @@ function addToInstructionList(inst) {
                 return false;
             }
         }
-        return true;
+        return null;
     };
 
     deleteButton.addEventListener("click", function () {
@@ -128,20 +129,35 @@ function addToInstructionList(inst) {
     });
 
 }
+var grammar;
+var firstCompile = true;
 
 function compile(source) {
+    const startTime = new Date();
+    let noChanges = true;
     for (let elem of instructionList.children) {
-        if (!elem.update()) {
+        const updateResult = elem.update();
+        if (updateResult === false) {
             return false;
         }
+        else if (updateResult === true) {
+            noChanges = false;
+        }
     }
+    console.log(noChanges)
 
     const marks = inputEditor.getAllMarks();
     for (const mark of marks) {
         mark.clear();
     }
 
-    const grammar = new Grammar(grammarProductions, nt_symbols.S);
+    if (grammar !== undefined)
+        grammar.restartStack();
+    if (!noChanges || firstCompile) {
+        grammar = new Grammar(grammarProductions, nt_symbols.S);
+        firstCompile = false;
+    }
+
     const parseTree = new ParseTree(this.startSymbol);
 
     let compilingError;
@@ -149,7 +165,12 @@ function compile(source) {
     const lexer = new Lexer(source);
     const tokens = [];
     let token;
+    //TODO checar se é ll1
 
+    if (!grammar.checkIfLL1()) {
+        console.log('not ll1')
+        return;
+    }
     while (true) {
         try {
             token = lexer.getToken();
@@ -182,6 +203,7 @@ function compile(source) {
 
     console.log('tokens: ', tokens);
     console.log(grammar.parsingTable)
+    console.log(parseTree)
     // for (let nt of grammar.nonTerminals) {
     //     console.log('FIRST(' + nt + ') = ' + (new Array(...grammar.firstSet[nt]).join(' ')))
     //     console.log('FOLLOW(' + nt + ') = ' + (new Array(...grammar.followSet[nt]).join(' ')));
@@ -189,16 +211,30 @@ function compile(source) {
 
     let binary;
     if (!compilingError) {
-        binary = convert(parseTree.root);
-        outputTextArea.value = binary;
-        outputEditor.setValue(outputTextArea.value);
+        try {
+            binary = convert(parseTree.root);
+            outputTextArea.value = binary;
+            outputEditor.setValue(outputTextArea.value);
 
 
-        const parsedTree2 = grammar.parseAll(tokens);
-        const binary2 = convert(parsedTree2.root);
+            const parsedTree2 = grammar.parseAll(tokens);
+            const binary2 = convert(parsedTree2.root);
 
-        console.log(binary === binary2)
+            console.log(binary === binary2)
+
+        } catch (error) {
+            compilingError = error;
+            console.log(error)
+            handleError(compilingError);
+        }
     }
+
+
+    const endTime = new Date();
+
+    // Calculate the time elapsed in milliseconds
+    const elapsedTime = endTime - startTime;
+    console.log(`Time elapsed: ${elapsedTime} milliseconds`);
 }
 
 function handleError(error) {

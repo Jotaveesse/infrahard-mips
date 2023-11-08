@@ -92,7 +92,7 @@ class Lexer {
                 //se vier alguma letra apos o numero
                 if (this.peek().match(/[a-zA-Z_]/))
                     throw new CompilingError(errorTypes.invalidKeyword, { line: this.curLine, ch: this.curColumn - text.length },
-                        { line: this.curLine, ch: this.curColumn+1 }, text+this.peek());
+                        { line: this.curLine, ch: this.curColumn + 1 }, text + this.peek());
 
                 token = new Token(text, TerminalTypes.map.NUMBER, this.curLine, this.curColumn);
             }
@@ -100,24 +100,42 @@ class Lexer {
             const startPos = this.curPos;
             this.nextChar();
 
+
             //nao aceita numero de multiplos digitos começados por 0
             if (this.curChar === '0' && isNum(this.peek())) {
                 throw new CompilingError(errorTypes.zeroStart, { line: this.curLine, ch: this.curColumn - 1 },
                     { line: this.curLine, ch: this.curColumn + 1 }, this.curChar + this.peek());
             }
             else {
-                while (isNum(this.peek())) {
+
+                while (/^[a-zA-Z0-9]+$/.test(this.peek())) {
                     this.nextChar();
                 }
 
                 const text = this.source.substring(startPos, this.curPos + 1);
 
-                //se o numero do registrador for maior que 32
-                if (removeCharacter(text, '$') <= 32)
-                    token = new Token(text, TerminalTypes.map.REG, this.curLine, this.curColumn);
+                const dollarlessText = text.slice(1);
+
+                if (isNum(dollarlessText)) {
+                    //se o numero do registrador for maior que 32
+                    if (dollarlessText <= 32)
+                        token = new Token(text, TerminalTypes.map.REG, this.curLine, this.curColumn);
+                    else {
+                        throw new CompilingError(errorTypes.invalidReg, { line: this.curLine, ch: this.curColumn - text.length },
+                            { line: this.curLine, ch: this.curColumn }, text);
+                    }
+                }
                 else {
-                    throw new CompilingError(errorTypes.invalidReg, { line: this.curLine, ch: this.curColumn - text.length },
-                        { line: this.curLine, ch: this.curColumn }, text);
+                    const reg = registers[dollarlessText];
+
+                    if (reg !== undefined) {
+                        token = new Token( '$'+reg, TerminalTypes.map.REG, this.curLine, this.curColumn);
+                    }
+                    else {
+                        throw new CompilingError(errorTypes.invalidReg, { line: this.curLine, ch: this.curColumn - text.length },
+                            { line: this.curLine, ch: this.curColumn }, text);
+                    }
+
                 }
             }
         } else if (this.curChar.match(/[a-zA-Z_]/)) {
@@ -133,14 +151,16 @@ class Lexer {
 
             const kind = Token.checkIfKeyword(text);
             if (kind === null) {
-                throw new CompilingError(errorTypes.invalidKeyword, { line: this.curLine, ch: this.curColumn - text.length },
-                    { line: this.curLine, ch: this.curColumn }, text);
+                token = new Token(text, TerminalTypes.map.LABEL, this.curLine, this.curColumn);
+
+                // throw new CompilingError(errorTypes.invalidKeyword, { line: this.curLine, ch: this.curColumn - text.length },
+                //     { line: this.curLine, ch: this.curColumn }, text);
             } else {
                 token = new Token(text, kind, this.curLine, this.curColumn);
             }
 
         } else {
-            throw new CompilingError(errorTypes.invalidCharacter, { line: this.curLine, ch: this.curColumn-1 },
+            throw new CompilingError(errorTypes.invalidCharacter, { line: this.curLine, ch: this.curColumn - 1 },
                 { line: this.curLine, ch: this.curColumn }, this.curChar);
         }
 
@@ -185,4 +205,39 @@ Token.prototype.toString = function () {
 function isNum(str) {
     return !isNaN(str) &&
         !isNaN(parseFloat(str));
+}
+
+const registers = {
+    zero: 0,
+    at: 1,
+    v0: 2,
+    v1: 3,
+    a0: 4,
+    a1: 5,
+    a2: 6,
+    a3: 7,
+    t0: 8,
+    t1: 9,
+    t2: 10,
+    t3: 11,
+    t4: 12,
+    t5: 13,
+    t6: 14,
+    t7: 15,
+    s0: 16,
+    s1: 17,
+    s2: 18,
+    s3: 19,
+    s4: 20,
+    s5: 21,
+    s6: 22,
+    s7: 23,
+    t8: 24,
+    t9: 25,
+    k0: 26,
+    k1: 27,
+    gp: 28,
+    sp: 29,
+    fp: 30,
+    ra: 31,
 }

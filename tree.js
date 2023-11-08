@@ -82,13 +82,13 @@ class NonterminalNode {
         }
 
         //checa se tem algum terminal com valor nulo e retorna ele
-        if (this.terminals.length !== 0) {
-            for (const term of this.terminals) {
-                if (term.value == null) {
-                    return term;
-                }
+        for (let i = this.terminals.length - 1; i >= 0; i--) {
+            const term= this.terminals[i];
+            if (term.value == null) {
+                return term;
             }
         }
+
         return null;
     }
 }

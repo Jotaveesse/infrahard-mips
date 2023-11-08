@@ -19,11 +19,15 @@ class Grammar {
         this.parsingTable = {};
 
         //TODO reiniciair perm stack
-        this.permStack = [EOF, this.startSymbol];;
+        this.permStack = [EOF, this.startSymbol];
 
         this.buildFirstSets();
         this.buildFollowSets();
         this.generateParsingTable();
+    }
+
+    restartStack(){
+        this.permStack = [EOF, this.startSymbol];
     }
 
     buildFirstSets() {
@@ -146,26 +150,30 @@ class Grammar {
                 prodFirstSet[nt] = new Set();
             }
 
-            for (const firstTerminal of this.firstSet[prod.production[0]]) {
-                if (prod.production[0] === EPSILON) {
-                    //talvez esteja errado pq deveria pegar o follow do proximo simbolo
+            this.getProd(prod, 0);
+        }
+    }
+
+    getProd(prod, i) {
+        //                 console.log(prod.nonterminal.type,nextFirstTerminal.type);
+        for (const firstTerminal of this.firstSet[prod.production[i]]) {
+            if (prod.production[i] === EPSILON) {
+                //talvez esteja errado pq deveria pegar o follow do proximo simbolo
+                for (const followTerminal of this.followSet[prod.nonterminal]) {
+                    this.parsingTable[prod.nonterminal.type][followTerminal.type].push(prod.production);
+                }
+            } else if (firstTerminal === EPSILON) {
+                if (prod.production.length > i + 1) {
+                    this.getProd(prod, i + 1)
+
+                }
+                else {
                     for (const followTerminal of this.followSet[prod.nonterminal]) {
                         this.parsingTable[prod.nonterminal.type][followTerminal.type].push(prod.production);
                     }
-                } else if (firstTerminal === EPSILON) {
-                    if (prod.production.length >= 2) {
-                        for (const nextFirstTerminal of this.firstSet[prod.production[1]]) {
-                            this.parsingTable[prod.nonterminal.type][nextFirstTerminal.type].push(prod.production);
-                        }
-                    }
-                    else {
-                        for (const followTerminal of this.followSet[prod.nonterminal]) {
-                            this.parsingTable[prod.nonterminal.type][followTerminal.type].push(prod.production);
-                        }
-                    }
-                } else {
-                    this.parsingTable[prod.nonterminal.type][firstTerminal.type].push(prod.production);
                 }
+            } else {
+                this.parsingTable[prod.nonterminal.type][firstTerminal.type].push(prod.production);
             }
         }
     }
@@ -190,18 +198,18 @@ class Grammar {
         while (true) {
             //converte os tokens number para tipos numericos especificos
             if (currToken.type === TerminalTypes.map.NUMBER) {
-                if (stackTop.type == NonterminalTypes.OFFSET)
+                if (stackTop.type == NonterminalTypes.OFFSET || stackTop.type == NonterminalTypes.T9_1)
                     currToken.type = TerminalTypes.map.OFFSET;
                 else if (stackTop.type == NonterminalTypes.SHAMT)
                     currToken.type = TerminalTypes.map.SHAMT;
                 else if (stackTop.type == TerminalTypes.map.ADDRESS || stackTop.type == NonterminalTypes.T6)
                     currToken.type = TerminalTypes.map.ADDRESS;
                 else {
-                    console.log('hu')
+                    console.log('invalid', currToken, stackTop)
 
-                    const validTerminals=this.parsingTable[stackTop];
-                    const validTokens = Object.keys(validTerminals).filter((key) => validTerminals[key].length > 0).map((val)=>TerminalTypes.revMap[val]);
-                    
+                    const validTerminals = this.parsingTable[stackTop];
+                    const validTokens = Object.keys(validTerminals).filter((key) => validTerminals[key].length > 0).map((val) => TerminalTypes.revMap[val]);
+
                     throw new CompilingError(errorTypes.invalidToken, startPos, endPos,
                         validTokens.display(), TerminalTypes.revMap[currToken.type]);
                 }
@@ -235,7 +243,11 @@ class Grammar {
                     }
 
                     //adiciona o valor do token na arvore
-                    parseTree.root.findRightmostEmptyTerminal().value = currToken.text;
+                    const emptyTerm = parseTree.root.findRightmostEmptyTerminal();
+                    emptyTerm.value = currToken.text;
+                    emptyTerm.start=startPos;
+                    emptyTerm.end=endPos;
+
 
                     break;
 
@@ -246,7 +258,10 @@ class Grammar {
 
 
                     //adiciona o valor do token na arvore
-                    parseTree.root.findRightmostEmptyTerminal().value = currToken.text;
+                    const emptyTerm = parseTree.root.findRightmostEmptyTerminal();
+                    emptyTerm.value = currToken.text;
+                    emptyTerm.start=startPos;
+                    emptyTerm.end=endPos;
 
                     break;
 
@@ -261,9 +276,9 @@ class Grammar {
 
                 //caso nao tenha nenhuma regra para essa combinação de terminal e nao terminal
                 if (validProds.length === 0) {
-                    const validTerminals=this.parsingTable[stackTop];
-                    const validTokens = Object.keys(validTerminals).filter((key) => validTerminals[key].length > 0).map((val)=>TerminalTypes.revMap[val]);
-                    
+                    const validTerminals = this.parsingTable[stackTop];
+                    const validTokens = Object.keys(validTerminals).filter((key) => validTerminals[key].length > 0).map((val) => TerminalTypes.revMap[val]);
+
                     throw new CompilingError(errorTypes.invalidToken, startPos, endPos,
                         validTokens.display(), TerminalTypes.revMap[currToken.type]);
 
@@ -298,12 +313,13 @@ class Grammar {
                         //caso regra seja epsilon adiciona o no epsilon terminal
                         else {
                             if (rightMostNode != null) {
-                                const node = new TerminalNode(s);
+                                const node = new TerminalNode(s,'');
                                 rightMostNode.addTerminal(node);
                             }
                         }
                     }
                 }
+                //TODO adicionar else para caso tenhe mais de  produção por algum motivo
             }
             else if (stackTop === EOF) {
                 break;
@@ -426,7 +442,7 @@ class Grammar {
                             //caso regra seja epsilon adiciona o no epsilon terminal
                             else {
                                 if (rightMostNode != null) {
-                                    const node = new TerminalNode(s);
+                                    const node = new TerminalNode(s,'');
                                     rightMostNode.addTerminal(node);
                                 }
                             }

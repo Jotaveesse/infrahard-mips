@@ -70,6 +70,9 @@ const errorTypes = {
     formatInvalid: 14,
     suffixInvalid: 15,
     codeTooBig: 16,
+
+    invalidLabel: 17,
+
 }
 
 class CompilingError extends Error {
@@ -116,7 +119,9 @@ class CompilingError extends Error {
             case errorTypes.suffixInvalid:
                 return `Sufixo '${this.var2}' da instrução '${this.var1}' inválido`;
             case errorTypes.codeTooBig:
-                return `Código da instrução inválido, o valor deve ser menor que 64 (0x40)`;
+                return `Código da instrução inválido, o valor deve ser menor 0x40 (64)`;
+                case errorTypes.invalidLabel:
+                return `Label  '${this.var1}' não inicializada`;
             default:
                 return `Erro de código ${this.errorType}`;
         }
@@ -291,13 +296,16 @@ const TerminalTypes = new TwoWayMap({
     SHAMT: 6,
     OFFSET: 7,
     ADDRESS: 8,
-
+    COLON:9,
+    LABEL:10,
 });
 
 const NonterminalTypes = {
     S: 'S',
     A: 'A',
     B: 'B',
+    C: 'C',
+    D: 'D',
     INST: 'INST',
     R_FORMAT: 'R_FORMAT',
     I_FORMAT: 'I_FORMAT',
@@ -308,9 +316,11 @@ const NonterminalTypes = {
     T4: 'T4',
     T5: 'T5',
     T6: 'T6',
+    T6_1: 'T6_1',
     T7: 'T7',
     T8: 'T8',
     T9: 'T9',
+    T9_1: 'T9_1',
     T10: 'T10',
     T11: 'T11',
     RS: 'RS',
@@ -338,11 +348,15 @@ const EOF = new SpecialSymbol(TerminalTypes.map.EOF);
 
 const grammarProductions = [
     new Rule(nt_symbols.S, [nt_symbols.A]),
-    new Rule(nt_symbols.A, [nt_symbols.INST, nt_symbols.B]),
-    new Rule(nt_symbols.A, [t_symbols.NEWLINE, nt_symbols.A]),
-    new Rule(nt_symbols.A, [EPSILON]),
-    new Rule(nt_symbols.B, [t_symbols.NEWLINE, nt_symbols.A]),
+    new Rule(nt_symbols.A, [nt_symbols.B, nt_symbols.C, nt_symbols.D]),
+    new Rule(nt_symbols.B, [t_symbols.LABEL, t_symbols.COLON]),
     new Rule(nt_symbols.B, [EPSILON]),
+    new Rule(nt_symbols.C, [nt_symbols.INST]),
+    new Rule(nt_symbols.C, [EPSILON]),
+    new Rule(nt_symbols.D, [t_symbols.NEWLINE, nt_symbols.A]),
+    new Rule(nt_symbols.D, [EPSILON]),
+
+
     new Rule(nt_symbols.INST, [nt_symbols.R_FORMAT]),
     new Rule(nt_symbols.INST, [nt_symbols.I_FORMAT]),
     new Rule(nt_symbols.INST, [nt_symbols.J_FORMAT]),
@@ -353,9 +367,14 @@ const grammarProductions = [
     new Rule(nt_symbols.T4, [nt_symbols.RS, t_symbols.COMMA, nt_symbols.RT]),
     new Rule(nt_symbols.T5, [nt_symbols.RD, t_symbols.COMMA, nt_symbols.RS, t_symbols.COMMA, nt_symbols.RT]),
     new Rule(nt_symbols.T6, [nt_symbols.ADDRESS]),
+    new Rule(nt_symbols.ADDRESS, [t_symbols.ADDRESS]),
+    new Rule(nt_symbols.ADDRESS, [t_symbols.LABEL]),
     new Rule(nt_symbols.T7, [nt_symbols.RT, t_symbols.COMMA, nt_symbols.OFFSET]),
     new Rule(nt_symbols.T8, [nt_symbols.RD, t_symbols.COMMA, nt_symbols.RT, t_symbols.COMMA, nt_symbols.SHAMT]),
-    new Rule(nt_symbols.T9, [nt_symbols.RS, t_symbols.COMMA, nt_symbols.RT, t_symbols.COMMA, nt_symbols.OFFSET]),
+    new Rule(nt_symbols.T9, [nt_symbols.RS, t_symbols.COMMA, nt_symbols.RT, t_symbols.COMMA, nt_symbols.T9_1]),
+    new Rule(nt_symbols.T9_1, [t_symbols.LABEL]),
+    new Rule(nt_symbols.T9_1, [t_symbols.OFFSET]),
+
     new Rule(nt_symbols.T10, [nt_symbols.RT, t_symbols.COMMA, nt_symbols.RS, t_symbols.COMMA, nt_symbols.OFFSET]),
     new Rule(nt_symbols.T11, [nt_symbols.RT, t_symbols.COMMA, nt_symbols.OFFSET, t_symbols.L_PAREN, nt_symbols.RS, t_symbols.R_PAREN]),
 
@@ -365,7 +384,6 @@ const grammarProductions = [
 
     new Rule(nt_symbols.SHAMT, [t_symbols.SHAMT]),
     new Rule(nt_symbols.OFFSET, [t_symbols.OFFSET]),
-    new Rule(nt_symbols.ADDRESS, [t_symbols.ADDRESS]),
 ];
 
 const instructions = [

@@ -185,7 +185,7 @@ function addToInstructionList(inst) {
     instSuffix.value = inst.suffix;
 
 
-    //função que é chamada atravez do elemento da pagina
+    //função que é chamada atraves do elemento da pagina
     newElem.update = function () {
         const wasChanged = instName.value.toUpperCase() !== inst.name ||
             instCode.value !== inst.code ||

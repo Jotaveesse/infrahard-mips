@@ -107,7 +107,17 @@ const grammarProductions = [
 //vazio porque os codigos vao ser gerados com base nas instruções existentes
 const instCodes = {}
 
-
+//T1 ->
+//T2 -> rs
+//T3 -> rd
+//T4 -> rs, rt
+//T5 -> rd, rs, rt
+//T6 -> address
+//T7 -> rt, imediato
+//T8 -> rd, rt, shamt
+//T9 -> rs, rt, offset
+//T10 -> rt, rs, offset
+//T11 -> rt, offset(rs)
 //instruções iniciais
 const instTemplates = [
     new Instruction('add', '20', NonterminalTypes.R_FORMAT, NonterminalTypes.T5),

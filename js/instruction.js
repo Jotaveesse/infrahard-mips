@@ -12,8 +12,6 @@ class Instruction {
         this.format = format;
         this.suffix = suffix;
         this.productions = [];
-
-        //this.addToParser();
     }
 
     addToParser() {
@@ -64,6 +62,10 @@ class Instruction {
     }
 
     update(name, code, format, suffix) {
+        const nameExists = this.isNameTaken(name);
+        if (nameExists)
+            throw nameExists;
+
         this.removeFromParser();
 
         this.name = name.toUpperCase();
@@ -98,23 +100,30 @@ class Instruction {
         this.productions = [];
     }
 
-    alreadyExists() {
+    isNameTaken(name) {
+        name= name.toUpperCase();
         let nameExists = false;
 
-        nameExists ||= instCodes[this.name] !== undefined;
-        nameExists ||= t_symbols[this.name] !== undefined;
-        nameExists ||= nt_symbols[this.name] !== undefined;
-        nameExists ||= NonterminalTypes[this.name] !== undefined;
-        nameExists ||= TerminalTypes.map[this.name] !== undefined;
+        nameExists ||= instCodes[name] !== undefined;
+        nameExists ||= t_symbols[name] !== undefined;
+        nameExists ||= nt_symbols[name] !== undefined;
+        nameExists ||= NonterminalTypes[name] !== undefined;
+        nameExists ||= TerminalTypes.map[name] !== undefined;
 
         if (nameExists)
-            return new CompilingError(errorTypes.nameExists, null, null, this.name);
+            return new CompilingError(errorTypes.nameExists, null, null, name);
+    }
+
+    alreadyExists() {
+        const nameExists = this.isNameTaken(this.name);
+        if (nameExists)
+            return nameExists;
 
         //checa se tem algum codigo repetido, no caso do formato R checa apenas outras instruções R
         for (let inst in instCodes) {
             if (instCodes[inst] === this.code) {
-                const termType=TerminalTypes.map[inst];
-                
+                const termType = TerminalTypes.map[inst];
+
                 //entre 100 e 200 é formato R
                 if (this.format == NonterminalTypes.R_FORMAT) {
                     if (termType >= 100 && termType < 200) {

@@ -1,3 +1,42 @@
+class Symbol {
+    constructor(value) {
+        this.type = value;
+    }
+
+    toString() {
+        return this.type;
+    }
+}
+
+class Nonterminal extends Symbol {
+    constructor(name) {
+        super(name);
+    }
+}
+
+class Terminal extends Symbol {
+    constructor(name) {
+        super(name);
+    }
+}
+
+class SpecialSymbol extends Symbol {
+    constructor(name, type) {
+        super(name, type);
+    }
+}
+
+class Rule {
+    constructor(nt, production) {
+        this.nonterminal = nt;
+        this.production = production;
+    }
+
+    toString() {
+        return `${this.nonterminal} -> ${this.production.join(' ')}`;
+    }
+}
+
 class Grammar {
     constructor(productions, startSymbol) {
         this.productions = productions;
@@ -18,7 +57,6 @@ class Grammar {
         this.followSet = {};
         this.parsingTable = {};
 
-        //TODO reiniciair perm stack
         this.permStack = [EOF, this.startSymbol];
 
         this.buildFirstSets();
@@ -26,7 +64,7 @@ class Grammar {
         this.generateParsingTable();
     }
 
-    restartStack(){
+    restartStack() {
         this.permStack = [EOF, this.startSymbol];
     }
 
@@ -97,12 +135,10 @@ class Grammar {
                 }
             }
         }
-
     }
 
     getSymbolFollows(rule, currIndex) {
         const symbol = rule.production[currIndex];
-        //console.log(symbol)
         if (symbol instanceof Nonterminal) {
             let follows;
 
@@ -127,9 +163,10 @@ class Grammar {
             return follows;
         }
         else {
-            //return new Set();
+            return new Set();
         }
     }
+
     generateParsingTable() {
         for (const nt of this.nonTerminals) {
             this.parsingTable[nt] = {};
@@ -150,21 +187,19 @@ class Grammar {
                 prodFirstSet[nt] = new Set();
             }
 
-            this.getProd(prod, 0);
+            this.buildTableEntry(prod, 0);
         }
     }
 
-    getProd(prod, i) {
-        //                 console.log(prod.nonterminal.type,nextFirstTerminal.type);
+    buildTableEntry(prod, i) {
         for (const firstTerminal of this.firstSet[prod.production[i]]) {
             if (prod.production[i] === EPSILON) {
-                //talvez esteja errado pq deveria pegar o follow do proximo simbolo
                 for (const followTerminal of this.followSet[prod.nonterminal]) {
                     this.parsingTable[prod.nonterminal.type][followTerminal.type].push(prod.production);
                 }
             } else if (firstTerminal === EPSILON) {
                 if (prod.production.length > i + 1) {
-                    this.getProd(prod, i + 1)
+                    this.buildTableEntry(prod, i + 1)
 
                 }
                 else {
@@ -205,8 +240,6 @@ class Grammar {
                 else if (stackTop.type == TerminalTypes.map.ADDRESS || stackTop.type == NonterminalTypes.T6)
                     currToken.type = TerminalTypes.map.ADDRESS;
                 else {
-                    console.log('invalid', currToken, stackTop)
-
                     const validTerminals = this.parsingTable[stackTop];
                     const validTokens = Object.keys(validTerminals).filter((key) => validTerminals[key].length > 0).map((val) => TerminalTypes.revMap[val]);
 
@@ -216,8 +249,10 @@ class Grammar {
             }
 
             if (stackTop instanceof Terminal) {
-                //TODO melhorar isso
-                if (currToken.type === TerminalTypes.map.SHAMT || currToken.type === TerminalTypes.map.OFFSET || currToken.type === TerminalTypes.map.ADDRESS) {
+                if (currToken.type === TerminalTypes.map.SHAMT ||
+                    currToken.type === TerminalTypes.map.OFFSET ||
+                    currToken.type === TerminalTypes.map.ADDRESS) {
+
                     var bitCount = countBits(currToken.text);
 
                     // remove ultimo elemento da pilha e vai pro proximo token
@@ -243,11 +278,10 @@ class Grammar {
                     }
 
                     //adiciona o valor do token na arvore
-                    const emptyTerm = parseTree.root.findRightmostEmptyTerminal();
+                    const emptyTerm = parseTree.root.findLeftmostEmptyTerminal();
                     emptyTerm.value = currToken.text;
-                    emptyTerm.start=startPos;
-                    emptyTerm.end=endPos;
-
+                    emptyTerm.start = startPos;
+                    emptyTerm.end = endPos;
 
                     break;
 
@@ -256,12 +290,11 @@ class Grammar {
                     // remove ultimo elemento da pilha e vai pro proximo token
                     this.permStack.pop();
 
-
                     //adiciona o valor do token na arvore
-                    const emptyTerm = parseTree.root.findRightmostEmptyTerminal();
+                    const emptyTerm = parseTree.root.findLeftmostEmptyTerminal();
                     emptyTerm.value = currToken.text;
-                    emptyTerm.start=startPos;
-                    emptyTerm.end=endPos;
+                    emptyTerm.start = startPos;
+                    emptyTerm.end = endPos;
 
                     break;
 
@@ -275,20 +308,19 @@ class Grammar {
                 const validProds = this.parsingTable[stackTop][currToken.type];
 
                 //caso nao tenha nenhuma regra para essa combinação de terminal e nao terminal
-                if (validProds.length === 0) {
+                if (!validProds || validProds.length == 0) {
                     const validTerminals = this.parsingTable[stackTop];
                     const validTokens = Object.keys(validTerminals).filter((key) => validTerminals[key].length > 0).map((val) => TerminalTypes.revMap[val]);
 
                     throw new CompilingError(errorTypes.invalidToken, startPos, endPos,
                         validTokens.display(), TerminalTypes.revMap[currToken.type]);
 
-                    //return(`Erro sintático, caractere inesperado para resolver não-terminal ${stackTop.type}: ${TerminalTypes.revMap[currToken.type]}`);
                 }
                 else if (validProds.length === 1) {
                     //remove ultimo elemento da pilha e substitui com os simbolos da regra
                     this.permStack.pop();
 
-                    const rightMostNode = parseTree.root.findRightmostEmptyNonterminal();
+                    const rightMostNode = parseTree.root.findLeftmostEmptyNonterminal();
 
                     for (const s of [...validProds[0]].reverse()) {
                         if (s !== EPSILON) {
@@ -299,27 +331,29 @@ class Grammar {
                                 // adiciona simbolo à arvore
                                 if (s instanceof Nonterminal) {
                                     const node = new NonterminalNode(s);
-                                    rightMostNode.addNonterminal(node);
+                                    rightMostNode.addNonterminalAtStart(node);
                                 }
                                 else if (s instanceof Terminal) {
                                     const node = new TerminalNode(s);
-                                    rightMostNode.addTerminal(node);
+                                    rightMostNode.addTerminalAtStart(node);
                                 }
                             }
                             else {
-                                return ('Algo de errado na árvore sintática');
+                                throw new CompilingError(errorTypes.tableError, startPos, endPos, TerminalTypes.revMap[currToken.type]);
                             }
                         }
                         //caso regra seja epsilon adiciona o no epsilon terminal
                         else {
                             if (rightMostNode != null) {
-                                const node = new TerminalNode(s,'');
-                                rightMostNode.addTerminal(node);
+                                const node = new TerminalNode(s, '');
+                                rightMostNode.addTerminalAtStart(node);
                             }
                         }
                     }
                 }
-                //TODO adicionar else para caso tenhe mais de  produção por algum motivo
+                else {
+                    throw new CompilingError(errorTypes.tableError, startPos, endPos, TerminalTypes.revMap[currToken.type]);
+                }
             }
             else if (stackTop === EOF) {
                 break;
@@ -332,205 +366,4 @@ class Grammar {
             stackTop = this.permStack[this.permStack.length - 1];
         }
     }
-
-    parseAll(sentence) {
-        if (!this.checkIfLL1()) {
-            console.log('Erro, gramática não é LL(1)!');
-            return null;
-        } else {
-
-            const size = sentence.length;
-            let i = 0;
-            const stack = [EOF, this.startSymbol];
-            let currToken = sentence[i];
-            let stackTop = stack[stack.length - 1];
-
-            const parseTree = new ParseTree(this.startSymbol);
-
-            while (stackTop !== EOF) {
-                //converte os tokens number para tipos numericos especificos
-                if (currToken.type === TerminalTypes.map.NUMBER) {
-                    if (stackTop.type == NonterminalTypes.OFFSET)
-                        currToken.type = TerminalTypes.map.OFFSET;
-                    else if (stackTop.type == NonterminalTypes.SHAMT)
-                        currToken.type = TerminalTypes.map.SHAMT;
-                    else if (stackTop.type == TerminalTypes.map.ADDRESS || stackTop.type == NonterminalTypes.T6)
-                        currToken.type = TerminalTypes.map.ADDRESS;
-                }
-
-                if (stackTop instanceof Terminal) {
-                    if (currToken.type === TerminalTypes.map.SHAMT || currToken.type === TerminalTypes.map.OFFSET || currToken.type === TerminalTypes.map.ADDRESS) {
-                        const bitCount = countBits(currToken.text);
-
-                        // remove ultimo elemento da pilha e vai pro proximo token
-                        stack.pop();
-                        i++;
-
-                        let bitLimit;
-                        if (currToken.type === TerminalTypes.map.SHAMT) {
-                            if (currToken.text < 0) {
-                                console.log(`Erro sintático, esperava por um número positivo e apareceu  um de negativo na posição ${i}`);
-                                return null;
-                            }
-                            bitLimit = 6;   //6 ao inves de 5 pq so aceita os numeros positivos
-                        }
-                        if (currToken.type === TerminalTypes.map.OFFSET) {
-                            bitLimit = 16;
-                        }
-                        if (currToken.type === TerminalTypes.map.ADDRESS) {
-                            bitLimit = 26;
-                        }
-                        if (bitCount > bitLimit) {
-                            console.log(`Erro sintático, esperava por um número de ${bitLimit} bits e apareceu  um de ${bitCount} bits na posição ${i}`);
-                            return null;
-                        }
-
-                        //adiciona o valor do token na arvore
-                        parseTree.root.findRightmostEmptyTerminal().value = currToken.text;
-
-                        currToken = sentence[i];
-                    }
-                    else if (stackTop.type === currToken.type) {
-                        // remove ultimo elemento da pilha e vai pro proximo token
-                        stack.pop();
-                        i++;
-
-                        //adiciona o valor do token na arvore
-                        parseTree.root.findRightmostEmptyTerminal().value = currToken.text;
-
-                        currToken = sentence[i];
-                    }
-                    else {
-                        console.log(`Erro sintático, esperava por ${TerminalTypes.revMap[stackTop.type]} e apareceu ${TerminalTypes.revMap[currToken.type]} na posição ${i}`);
-                        return null;
-                    }
-                }
-
-                else if (stackTop instanceof Nonterminal) {
-                    //caso nao tenha nenhuma regra para essa combinação de terminal e nao terminal
-                    if (this.parsingTable[stackTop][currToken.type].length === 0) {
-                        console.log(`Erro sintático, caractere inesperado para resolver não-terminal ${stackTop.type}: ${TerminalTypes.revMap[currToken.type]} na posição ${i}`);
-                        return null;
-                    }
-                    else if (this.parsingTable[stackTop][currToken.type].length === 1) {
-                        //remove ultimo elemento da pilha e substitui com os simbolos da regra
-                        stack.pop();
-
-                        const rightMostNode = parseTree.root.findRightmostEmptyNonterminal();
-
-                        for (const s of [...this.parsingTable[stackTop][currToken.type][0]].reverse()) {
-                            if (s !== EPSILON) {
-                                stack.push(s);
-                                if (rightMostNode != null) {
-                                    //console.log(rightMostNode.symbol, s, currToken);
-
-                                    // adiciona simbolo à arvore
-                                    if (s instanceof Nonterminal) {
-                                        const node = new NonterminalNode(s);
-                                        rightMostNode.addNonterminal(node);
-                                    }
-                                    else if (s instanceof Terminal) {
-                                        const node = new TerminalNode(s);
-                                        rightMostNode.addTerminal(node);
-                                    }
-                                }
-                                else {
-                                    console.log('Algo de errado na árvore sintática');
-                                    return null;
-                                }
-                            }
-                            //caso regra seja epsilon adiciona o no epsilon terminal
-                            else {
-                                if (rightMostNode != null) {
-                                    const node = new TerminalNode(s,'');
-                                    rightMostNode.addTerminal(node);
-                                }
-                            }
-                        }
-                    }
-                }
-                else {
-                    console.log('Tem algo errado com a tabela de parsing.');
-                    return null;
-                }
-                stackTop = stack[stack.length - 1];
-            }
-
-            if (currToken.type === TerminalTypes.map.EOF) {
-                return parseTree;
-            } else {
-                //console.log(sentence)
-                //console.log(currToken);
-                console.log(`Erro sintático, esperava por EOF e apareceu: ${TerminalTypes.revMap[currToken.type]} na posição ${i}`);
-                return null;
-            }
-        }
-    }
-}
-
-function areObjectSetsEqual(obj1, obj2) {
-    const keys1 = Object.keys(obj1);
-    const keys2 = Object.keys(obj2);
-
-    if (!keys1.every(key => keys2.includes(key))) {
-        return false;
-    }
-
-    if (!keys2.every(key => keys1.includes(key))) {
-        return false;
-    }
-
-    // checa se cada key é igual em cada
-    for (const key of keys1) {
-        const set1 = obj1[key];
-        const set2 = obj2[key];
-
-        if (!(set1 instanceof Set) || !(set2 instanceof Set)) {
-            return false;
-        }
-
-        if (set1.size !== set2.size) {
-            return false;
-        }
-
-        for (const value1 of set1) {
-            let hasVal = false;
-            for (const value2 of set2) {
-
-                hasVal = areObjectsEqual(value1, value2);
-                if (hasVal)
-                    break;
-            }
-
-            if (!hasVal)
-                return false;
-        }
-    }
-    return true;
-}
-
-function areObjectsEqual(obj1, obj2) {
-    const keys1 = Object.keys(obj1);
-    const keys2 = Object.keys(obj2);
-
-    if (keys1.length !== keys2.length) {
-        return false;
-    }
-
-    for (const key of keys1) {
-        if (obj1[key] !== obj2[key]) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-//conta quantos bits seriam necessarios para represetnar um numero
-function countBits(num) {
-    const intNum = parseInt(num);
-    if (intNum >= 0)
-        return Math.ceil(Math.log(intNum + 1) / Math.log(2)) + 1;
-    else
-        return Math.ceil(Math.log(Math.abs(intNum)) / Math.log(2)) + 1;
 }

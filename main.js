@@ -19,18 +19,19 @@ window.onload = function () {
     addInstructionButton = document.getElementById("add-instruction");
     downloadButton = document.getElementById("download-button");
 
-
+    //cria os editores do CodeMirror
     inputEditor = CodeMirror.fromTextArea(inputTextArea, {
         lineNumbers: true,
-        mode: 'text/x-perl',
+        firstLineNumber: 0,
     });
 
     inputEditor.setOption('theme', 'blackboard');
     inputEditor.setOption('placeholder', 'Insira seu código aqui...');
 
     outputEditor = CodeMirror.fromTextArea(outputTextArea, {
+        mode: '',
         lineNumbers: true,
-        mode: 'text/x-perl',
+        firstLineNumber: 0,
         lineWrapping: true,
         readOnly: true,
     });
@@ -38,16 +39,17 @@ window.onload = function () {
     outputEditor.setOption('theme', 'blackboard');
     outputEditor.setOption('placeholder', 'Arquivo .mif sai aqui...');
 
-
+    //EVENTOS
     compileButton.addEventListener("click", function () {
         compile(inputEditor.getValue());
     });
 
     addInstructionButton.addEventListener("click", function () {
         try {
-            const newInst = new Instruction('', '', nt_symbols.R_FORMAT, nt_symbols.T1);
-            instructions.push(newInst);
+            const newInst = new Instruction('', '', NonterminalTypes.R_FORMAT, NonterminalTypes.T1);
+            instTemplates.push(newInst);
             addToInstructionList(newInst);
+
             instructionList.scrollTop = instructionList.scrollHeight;
         }
         catch (error) {
@@ -59,25 +61,112 @@ window.onload = function () {
         downloadTextFile(outputEditor.getValue(), 'instrucoes.mif')
     });
 
-
     inputEditor.on("change", function () {
-        //atualizar a textarea permite que o texto permanece caso atualiza a pagina
+        //atualizar a textarea permite que o texto permaneça caso atualize a pagina
         inputTextArea.value = inputEditor.getValue();
 
-        const marks = inputEditor.getAllMarks();
-        for (const mark of marks) {
-            mark.clear();
-        }
+        clearHighlights();
     });
 
 
     //adiciona as instruções padrão ao parser e a lista
-    for (let inst of instructions) {
+    for (let inst of instTemplates) {
         addToInstructionList(inst);
         inst.addToParser();
     }
 
 };
+
+var grammar;
+var firstCompile = true;
+
+function compile(source) {
+    const startTime = new Date();
+
+    let noChanges = true;
+
+    //atualiza todas as instruções da lista
+    for (let elem of instructionList.children) {
+        const updateResult = elem.update();
+        //se algum falhar em ser atualizada nao tenta compilar
+        if (updateResult === false) {
+            return false;
+        }
+        else if (updateResult === true) {
+            noChanges = false;
+        }
+    }
+    console.log('Mudança de instruções:', noChanges);
+
+    clearHighlights();
+
+    if (grammar !== undefined)
+        grammar.restartStack();
+
+    //cria uma nova gramatica apenas se alguma mudança ocorreu nas instruções
+    if (!noChanges || firstCompile) {
+        grammar = new Grammar(grammarProductions, nt_symbols.S);
+        firstCompile = false;
+
+        if (!grammar.checkIfLL1()) {
+            console.error('Gramática não é LL1')
+            return;
+        }
+    }
+
+    //printa os first e follows
+    // for (let nt of grammar.nonTerminals) {
+    //     console.log('FIRST(' + nt + ') = ' + (new Array(...grammar.firstSet[nt]).join(' ')))
+    //     console.log('FOLLOW(' + nt + ') = ' + (new Array(...grammar.followSet[nt]).join(' ')));
+    // }
+    console.log('Tabela de Parsing:', grammar.parsingTable);
+
+    try {
+        const parseTree = buildParseTree(source);
+        const mifText = generateCode(parseTree.root);
+
+
+        outputTextArea.value = mifText;
+        outputEditor.setValue(outputTextArea.value);
+    }
+    catch (error) {
+        displayError(error);
+    }
+
+    const endTime = new Date();
+    const elapsedTime = endTime - startTime;
+    console.log(`Compilação demorou ${elapsedTime} millisegundos`);
+}
+
+function buildParseTree(source) {
+    const parseTree = new ParseTree(this.startSymbol);
+    const lexer = new Lexer(source);
+    const tokens = [];
+    let token;
+
+    //lê um token e passa pro parser
+    while (true) {
+        token = lexer.getToken();
+
+        if (token == null) {
+            throw new CompilingError(errorTypes.nullToken);
+        }
+        else {
+            tokens.push(token);
+            grammar.parseToken(token, parseTree);
+        }
+
+        //quando chegar no ultimo token acaba
+        if (token.type === TerminalTypes.map.EOF) {
+            break;
+        }
+    }
+
+    console.log('Tokens: ', tokens);
+    console.log('Arvore Sintática:', parseTree);
+
+    return parseTree;
+}
 
 function addToInstructionList(inst) {
     const clone = document.importNode(instructionTemplate.content, true);
@@ -92,25 +181,28 @@ function addToInstructionList(inst) {
 
     instName.value = inst.name;
     instCode.value = inst.code;
-    instFormat.value = inst.format.type;
-    instSuffix.value = inst.suffix.type;
+    instFormat.value = inst.format;
+    instSuffix.value = inst.suffix;
 
+
+    //função que é chamada atravez do elemento da pagina
     newElem.update = function () {
         const wasChanged = instName.value.toUpperCase() !== inst.name ||
             instCode.value !== inst.code ||
-            nt_symbols[instFormat.value] !== inst.format ||
-            nt_symbols[instSuffix.value] !== inst.suffix;
+            NonterminalTypes[instFormat.value] !== inst.format ||
+            NonterminalTypes[instSuffix.value] !== inst.suffix;
 
         const failedPrev = newElem.classList.contains('failed-instruction');
 
+        //so tenta atualizar se for necessario
         if (wasChanged || failedPrev) {
-
             try {
-                inst.update(instName.value, instCode.value, nt_symbols[instFormat.value], nt_symbols[instSuffix.value]);
+                inst.update(instName.value, instCode.value, NonterminalTypes[instFormat.value], NonterminalTypes[instSuffix.value]);
                 newElem.classList.remove('failed-instruction');
                 return true;
 
-            } catch (error) {
+            }
+            catch (error) {
                 newElem.classList.add('failed-instruction');
                 outputTextArea.value = `Instrução '${inst.name}' de código '0x${inst.code}'\n${error.name}`;
                 outputEditor.setValue(outputTextArea.value);
@@ -118,159 +210,49 @@ function addToInstructionList(inst) {
                 return false;
             }
         }
+
+        //null significa que nao atualizou
         return null;
     };
 
     deleteButton.addEventListener("click", function () {
         inst.removeFromParser();
         newElem.remove();
-        const index = instructions.indexOf(inst);
-        delete instructions[index];
+        const index = instTemplates.indexOf(inst);
+        delete instTemplates[index];
     });
-
 }
-var grammar;
-var firstCompile = true;
 
-function compile(source) {
-    const startTime = new Date();
-    let noChanges = true;
-    for (let elem of instructionList.children) {
-        const updateResult = elem.update();
-        if (updateResult === false) {
-            return false;
-        }
-        else if (updateResult === true) {
-            noChanges = false;
-        }
+function displayError(error) {
+    if (error.startPos && error.endPos) {
+        outputTextArea.value = `Linha ${error.startPos.line}, coluna ${error.startPos.ch}\n${error.name}`;
+
+        inputEditor.markText(error.startPos, error.endPos, {
+            className: 'highlighted',
+        });
     }
-    console.log(noChanges)
+    else
+        outputTextArea.value = `${error.name}`;
 
+    outputEditor.setValue(outputTextArea.value);
+}
+
+function clearHighlights() {
     const marks = inputEditor.getAllMarks();
     for (const mark of marks) {
         mark.clear();
     }
-
-    if (grammar !== undefined)
-        grammar.restartStack();
-    if (!noChanges || firstCompile) {
-        grammar = new Grammar(grammarProductions, nt_symbols.S);
-        firstCompile = false;
-    }
-
-    const parseTree = new ParseTree(this.startSymbol);
-
-    let compilingError;
-
-    const lexer = new Lexer(source);
-    const tokens = [];
-    let token;
-    //TODO checar se é ll1
-
-    if (!grammar.checkIfLL1()) {
-        console.log('not ll1')
-        return;
-    }
-    while (true) {
-        try {
-            token = lexer.getToken();
-            tokens.push(token);
-        }
-        catch (error) {
-            compilingError = error;
-            handleError(compilingError);
-            break;
-        }
-
-
-        if (token == null)
-            break;
-
-        try {
-            grammar.parseToken(token, parseTree);
-        }
-        catch (error) {
-            compilingError = error;
-            console.log(error)
-            handleError(compilingError);
-            break;
-        }
-
-        if (token.type === TerminalTypes.map.EOF) {
-            break;
-        }
-    }
-
-    console.log('tokens: ', tokens);
-    console.log(grammar.parsingTable)
-    console.log(parseTree)
-    // for (let nt of grammar.nonTerminals) {
-    //     console.log('FIRST(' + nt + ') = ' + (new Array(...grammar.firstSet[nt]).join(' ')))
-    //     console.log('FOLLOW(' + nt + ') = ' + (new Array(...grammar.followSet[nt]).join(' ')));
-    // }
-
-    let binary;
-    if (!compilingError) {
-        try {
-            binary = convert(parseTree.root);
-            outputTextArea.value = binary;
-            outputEditor.setValue(outputTextArea.value);
-
-
-            const parsedTree2 = grammar.parseAll(tokens);
-            const binary2 = convert(parsedTree2.root);
-
-            console.log(binary === binary2)
-
-        } catch (error) {
-            compilingError = error;
-            console.log(error)
-            handleError(compilingError);
-        }
-    }
-
-
-    const endTime = new Date();
-
-    // Calculate the time elapsed in milliseconds
-    const elapsedTime = endTime - startTime;
-    console.log(`Time elapsed: ${elapsedTime} milliseconds`);
-}
-
-function handleError(error) {
-    outputTextArea.value = `Linha ${error.startPos.line + 1}, coluna ${error.startPos.ch + 1}\n${error.name}`;
-    outputEditor.setValue(outputTextArea.value);
-
-
-    inputEditor.markText(error.startPos, error.endPos, {
-        className: 'highlighted',
-    });
-}
-
-function findKeyByValue(object, value) {
-    for (const key in object) {
-        if (object[key] === value) {
-            return key;
-        }
-    }
-    return null;
 }
 
 function downloadTextFile(text, fileName) {
-    // Create a Blob with the text content and set its MIME type
     const blob = new Blob([text], { type: 'text/plain' });
-
-    // Create an object URL for the Blob
     const url = URL.createObjectURL(blob);
-
-    // Create a temporary anchor element and set its attributes
     const a = document.createElement('a');
+
     a.href = url;
     a.download = fileName;
 
-    // Programmatically click the anchor to trigger the download
     a.click();
 
-    // Clean up by revoking the object URL
     URL.revokeObjectURL(url);
 }

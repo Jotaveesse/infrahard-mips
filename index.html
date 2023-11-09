@@ -10,21 +10,24 @@
     <link rel="stylesheet" type="text/css" href="codemirror.css">
     <link rel="stylesheet" type="text/css" href="blackboard.css">
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.0/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.54.0/addon/display/placeholder.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/display/placeholder.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/gas/gas.min.js"></script>
+
+    <script src="helper.js"></script>
+    <script src="instruction.js"></script>
+    <script src="compiling-error.js"></script>
+    <script src="tree.js"></script>
+    <script src="parser.js"></script>
+    <script src="lexer.js"></script>
+    <script src="code-generator.js"></script>
+    <script src="constants.js"></script>
+    <script src="main.js"></script>
 </head>
 
 <body>
-    <script src="constants.js"></script>
-
-    <script src="tree.js"></script>
-    <script src="converter.js"></script>
-    <script src="parser.js"></script>
-    <script src="lexer.js"></script>
-    <script src="main.js"></script>
-
     <div class="title">
-        <span>Mips para .mif 2023.2</span>
+        <span>Mips -> .mif</span>
     </div>
     <div class="main">
         <div class="instructions-area">

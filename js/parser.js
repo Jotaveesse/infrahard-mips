@@ -241,6 +241,7 @@ class Grammar {
                     currToken.type = TerminalTypes.map.ADDRESS;
                 else {
                     const validTerminals = this.parsingTable[stackTop];
+                    //pega os nomes de cada token que seria aceitavel
                     const validTokens = Object.keys(validTerminals).filter((key) => validTerminals[key].length > 0).map((val) => TerminalTypes.revMap[val]);
 
                     throw new CompilingError(errorTypes.invalidToken, startPos, endPos,
@@ -299,8 +300,12 @@ class Grammar {
                     break;
 
                 } else {
+                    const validTerminals = this.parsingTable[stackTop];
+                    //pega os nomes de cada token que seria aceitavel
+                    const validTokens = Object.keys(validTerminals).filter((key) => validTerminals[key].length > 0).map((val) => TerminalTypes.revMap[val]);
+
                     throw new CompilingError(errorTypes.invalidToken, startPos, endPos,
-                        this.firstSet[stackTop.type].display(), TerminalTypes.revMap[currToken.type]);
+                        validTokens.display(), TerminalTypes.revMap[currToken.type]);
                 }
             }
 

@@ -80,7 +80,7 @@ window.onload = function () {
 var grammar;
 var firstCompile = true;
 
-function compile(source) {
+async function compile(source) {
     const startTime = new Date();
 
     let noChanges = true;
@@ -122,9 +122,8 @@ function compile(source) {
     console.log('Tabela de Parsing:', grammar.parsingTable);
 
     try {
-        const parseTree = buildParseTree(source);
+        const parseTree = await buildParseTree(source);
         const mifText = generateCode(parseTree.root);
-
 
         outputTextArea.value = mifText;
         outputEditor.setValue(outputTextArea.value);
@@ -138,12 +137,12 @@ function compile(source) {
     console.log(`Compilação demorou ${elapsedTime} millisegundos`);
 }
 
-function buildParseTree(source) {
+async function buildParseTree(source) {
     const parseTree = new ParseTree(this.startSymbol);
     const lexer = new Lexer(source);
     const tokens = [];
     let token;
-
+    let count = 0;
     //lê um token e passa pro parser
     while (true) {
         token = lexer.getToken();
@@ -160,12 +159,21 @@ function buildParseTree(source) {
         if (token.type === TerminalTypes.map.EOF) {
             break;
         }
+
+        //delay para permitir que a UI seja atualizada
+        count++;
+        if (count % 100 == 0)
+            await delay(1);
     }
 
     console.log('Tokens: ', tokens);
     console.log('Arvore Sintática:', parseTree);
 
     return parseTree;
+}
+
+async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 function addToInstructionList(inst) {

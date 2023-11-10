@@ -79,8 +79,13 @@ window.onload = function () {
 
 var grammar;
 var firstCompile = true;
+var compiling = false;
 
 async function compile(source) {
+    if (compiling)
+        return;
+    compiling = true;
+
     const startTime = new Date();
 
     let noChanges = true;
@@ -130,6 +135,9 @@ async function compile(source) {
     }
     catch (error) {
         displayError(error);
+    }
+    finally {
+        compiling = false;
     }
 
     const endTime = new Date();
@@ -233,6 +241,8 @@ function addToInstructionList(inst) {
 
 function displayError(error) {
     if (error.startPos && error.endPos) {
+        inputEditor.scrollIntoView(error.endPos, 50);
+        
         outputTextArea.value = `Linha ${error.startPos.line}, coluna ${error.startPos.ch}\n${error.name}`;
 
         inputEditor.markText(error.startPos, error.endPos, {

@@ -41,7 +41,13 @@ window.onload = function () {
 
     //EVENTOS
     compileButton.addEventListener("click", function () {
-        compile(inputEditor.getValue());
+        if (compiling) {
+            cancelled = true;
+        }
+        else {
+            cancelled=false;
+            compile(inputEditor.getValue());
+        }
     });
 
     addInstructionButton.addEventListener("click", function () {
@@ -82,8 +88,6 @@ var firstCompile = true;
 var compiling = false;
 
 async function compile(source) {
-    if (compiling)
-        return;
     compiling = true;
 
     const startTime = new Date();
@@ -149,8 +153,11 @@ async function buildParseTree(source) {
     const parseTree = new ParseTree(this.startSymbol);
     const lexer = new Lexer(source);
     const tokens = [];
+    const totalLines = source.split('\n').length - 1;
+    let linesParsed = 0;
     let token;
     let count = 0;
+
     //lê um token e passa pro parser
     while (true) {
         token = lexer.getToken();
@@ -161,6 +168,9 @@ async function buildParseTree(source) {
         else {
             tokens.push(token);
             grammar.parseToken(token, parseTree);
+
+            linesParsed = token.line;
+            updateProgress(linesParsed / totalLines);
         }
 
         //quando chegar no ultimo token acaba
@@ -171,7 +181,12 @@ async function buildParseTree(source) {
         //delay para permitir que a UI seja atualizada
         count++;
         if (count % 100 == 0)
-            await delay(1);
+            await delay(10);
+
+        if (cancelled) {
+            updateProgress(1);  //atualiza progresso apra o final
+            throw new CompilingError(errorTypes.compilationCancelled);
+        }
     }
 
     console.log('Tokens: ', tokens);
@@ -182,6 +197,19 @@ async function buildParseTree(source) {
 
 async function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+
+function updateProgress(progress) {
+    if (progress < 1) {
+        compileButton.style.background = `linear-gradient(to right, #1c2129 ${progress * 100}%, #12151d 0%)`;
+        compileButton.innerHTML = 'Cancelar';
+    }
+    else {
+        compileButton.style.removeProperty('background');
+        compileButton.innerHTML = 'Compilar';
+
+    }
 }
 
 function addToInstructionList(inst) {
@@ -242,7 +270,7 @@ function addToInstructionList(inst) {
 function displayError(error) {
     if (error.startPos && error.endPos) {
         inputEditor.scrollIntoView(error.endPos, 50);
-        
+
         outputTextArea.value = `Linha ${error.startPos.line}, coluna ${error.startPos.ch}\n${error.name}`;
 
         inputEditor.markText(error.startPos, error.endPos, {

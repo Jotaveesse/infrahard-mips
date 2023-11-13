@@ -20,6 +20,8 @@ const errorTypes = {
     invalidLabel: 17,
 
     nullToken: 18,
+
+    compilationCancelled: 19,
 }
 
 class CompilingError extends Error {
@@ -69,9 +71,11 @@ class CompilingError extends Error {
                 return `Código da instrução inválido, o valor deve ser menor que 0x40 (64)`;
             case errorTypes.invalidLabel:
                 return `Label '${this.var1}' não inicializada`;
-                case errorTypes.nullToken:
+            case errorTypes.nullToken:
                 return `Token é nulo por algum motivo`;
-                
+            case errorTypes.compilationCancelled:
+                return `Compilação cancelada`;
+
             default:
                 return `Erro de código ${this.errorType}`;
         }

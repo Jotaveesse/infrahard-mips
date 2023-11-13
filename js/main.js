@@ -138,6 +138,7 @@ async function compile(source) {
         outputEditor.setValue(outputTextArea.value);
     }
     catch (error) {
+        updateProgress(1);
         displayError(error);
     }
     finally {
@@ -184,7 +185,7 @@ async function buildParseTree(source) {
             await delay(10);
 
         if (cancelled) {
-            updateProgress(1);  //atualiza progresso apra o final
+            updateProgress(1);  //atualiza progresso para o final
             throw new CompilingError(errorTypes.compilationCancelled);
         }
     }
@@ -247,6 +248,7 @@ function addToInstructionList(inst) {
 
             }
             catch (error) {
+                compiling=false;
                 newElem.classList.add('failed-instruction');
                 outputTextArea.value = `Instrução '${inst.name}' de código '0x${inst.code}'\n${error.name}`;
                 outputEditor.setValue(outputTextArea.value);

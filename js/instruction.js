@@ -62,10 +62,7 @@ class Instruction {
     }
 
     update(name, code, format, suffix) {
-        const nameExists = this.isNameTaken(name);
-        if (nameExists)
-            throw nameExists;
-
+        
         this.removeFromParser();
 
         this.name = name.toUpperCase();

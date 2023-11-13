@@ -110,7 +110,7 @@ async function compile(source) {
     clearHighlights();
 
     if (grammar !== undefined)
-        grammar.restartStack();
+        grammar.restartStacks();
 
     //cria uma nova gramatica apenas se alguma mudança ocorreu nas instruções
     if (!noChanges || firstCompile) {

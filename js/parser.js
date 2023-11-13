@@ -57,15 +57,15 @@ class Grammar {
         this.followSet = {};
         this.parsingTable = {};
 
-        this.permStack = [EOF, this.startSymbol];
-
+        this.restartStacks();
         this.buildFirstSets();
         this.buildFollowSets();
         this.generateParsingTable();
     }
 
-    restartStack() {
-        this.permStack = [EOF, this.startSymbol];
+    restartStacks() {
+        this.symbolStack = [EOF, this.startSymbol];
+        this.treeStack = [];
     }
 
     buildFirstSets() {
@@ -225,10 +225,29 @@ class Grammar {
         return true;
     }
 
+    getLastNonterminalNode() {
+        for (let i = this.treeStack.length - 1; i >= 0; i--) {
+            if (this.treeStack[i] instanceof NonterminalNode)
+                return this.treeStack[i];
+        }
+        return null;
+    }
+
+    getLastTerminalNode() {
+        for (let i = this.treeStack.length - 1; i >= 0; i--) {
+            if (this.treeStack[i] instanceof TerminalNode)
+                return this.treeStack[i];
+        }
+        return null;
+    }
+
     parseToken(currToken, parseTree) {
-        let stackTop = this.permStack[this.permStack.length - 1];
+        let stackTop = this.symbolStack[this.symbolStack.length - 1];
         const startPos = { line: currToken.line, ch: currToken.column };
         const endPos = { line: currToken.line, ch: currToken.column + currToken.text.length };
+
+        if (this.treeStack.length === 0)
+            this.treeStack.push(parseTree.root);
 
         while (true) {
             //converte os tokens number para tipos numericos especificos
@@ -254,12 +273,19 @@ class Grammar {
                     currToken.type === TerminalTypes.map.OFFSET ||
                     currToken.type === TerminalTypes.map.ADDRESS) {
 
-                    var bitCount = countBits(currToken.text);
+                    //adiciona o valor do token na arvore
+                    const lastTerminal = this.getLastTerminalNode();
+                    lastTerminal.value = currToken.text;
+                    lastTerminal.start = startPos;
+                    lastTerminal.end = endPos;
 
                     // remove ultimo elemento da pilha e vai pro proximo token
-                    this.permStack.pop();
+                    this.symbolStack.pop();
+                    this.treeStack.pop();
 
+                    let bitCount = countBits(currToken.text);
                     let bitLimit;
+
                     if (currToken.type === TerminalTypes.map.SHAMT) {
                         if (currToken.text < 0) {
                             throw new CompilingError(errorTypes.negativeNumber, startPos, endPos, currToken.text);
@@ -278,28 +304,23 @@ class Grammar {
                         throw new CompilingError(errorTypes.tooManyBits, startPos, endPos, bitLimit, bitCount);
                     }
 
-                    //adiciona o valor do token na arvore
-                    const emptyTerm = parseTree.root.findLeftmostEmptyTerminal();
-                    emptyTerm.value = currToken.text;
-                    emptyTerm.start = startPos;
-                    emptyTerm.end = endPos;
-
                     break;
-
                 }
                 else if (stackTop.type === currToken.type) {
-                    // remove ultimo elemento da pilha e vai pro proximo token
-                    this.permStack.pop();
-
                     //adiciona o valor do token na arvore
-                    const emptyTerm = parseTree.root.findLeftmostEmptyTerminal();
-                    emptyTerm.value = currToken.text;
-                    emptyTerm.start = startPos;
-                    emptyTerm.end = endPos;
+                    const lastTerminal = this.getLastTerminalNode();
+                    lastTerminal.value = currToken.text;
+                    lastTerminal.start = startPos;
+                    lastTerminal.end = endPos;
+
+                    // remove ultimo elemento da pilha e vai pro proximo token
+                    this.symbolStack.pop();
+                    this.treeStack.pop();
 
                     break;
-
-                } else {
+                }
+                //caso seja um token não esperado
+                else {
                     const validTerminals = this.parsingTable[stackTop];
                     //pega os nomes de cada token que seria aceitavel
                     const validTokens = Object.keys(validTerminals).filter((key) => validTerminals[key].length > 0).map((val) => TerminalTypes.revMap[val]);
@@ -308,7 +329,6 @@ class Grammar {
                         validTokens.display(), TerminalTypes.revMap[currToken.type]);
                 }
             }
-
             else if (stackTop instanceof Nonterminal) {
                 const validProds = this.parsingTable[stackTop][currToken.type];
 
@@ -323,24 +343,26 @@ class Grammar {
                 }
                 else if (validProds.length === 1) {
                     //remove ultimo elemento da pilha e substitui com os simbolos da regra
-                    this.permStack.pop();
 
-                    const rightMostNode = parseTree.root.findLeftmostEmptyNonterminal();
+                    const leftMostNode = this.getLastNonterminalNode();
+                    //console.log(leftMostNode.symbol, this.getLastNonterminalNode().symbol)
+                    this.symbolStack.pop();
+                    this.treeStack.pop();
 
                     for (const s of [...validProds[0]].reverse()) {
                         if (s !== EPSILON) {
-                            this.permStack.push(s);
-                            if (rightMostNode != null) {
-                                //console.log(rightMostNode.symbol, s, currToken);
-
+                            this.symbolStack.push(s);
+                            if (leftMostNode != null) {
                                 // adiciona simbolo à arvore
                                 if (s instanceof Nonterminal) {
                                     const node = new NonterminalNode(s);
-                                    rightMostNode.addNonterminalAtStart(node);
+                                    leftMostNode.addNonterminalAtStart(node);
+                                    this.treeStack.push(node);
                                 }
                                 else if (s instanceof Terminal) {
                                     const node = new TerminalNode(s);
-                                    rightMostNode.addTerminalAtStart(node);
+                                    leftMostNode.addTerminalAtStart(node);
+                                    this.treeStack.push(node);
                                 }
                             }
                             else {
@@ -349,9 +371,10 @@ class Grammar {
                         }
                         //caso regra seja epsilon adiciona o no epsilon terminal
                         else {
-                            if (rightMostNode != null) {
+                            if (leftMostNode != null) {
                                 const node = new TerminalNode(s, '');
-                                rightMostNode.addTerminalAtStart(node);
+                                leftMostNode.addTerminalAtStart(node);
+                                //this.treeStack.push(node);    //nao precisa adicionar nó com EPSILON à treeStack
                             }
                         }
                     }
@@ -368,7 +391,7 @@ class Grammar {
             }
 
             //avança pro proximo elemento da stack
-            stackTop = this.permStack[this.permStack.length - 1];
+            stackTop = this.symbolStack[this.symbolStack.length - 1];
         }
     }
 }

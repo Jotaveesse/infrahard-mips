@@ -155,6 +155,8 @@ const instTemplates = [
     new Instruction('j', '2', NonterminalTypes.J_FORMAT, NonterminalTypes.T6),
     new Instruction('jal', '3', NonterminalTypes.J_FORMAT, NonterminalTypes.T6),
 
+    new Instruction('null', '3f', NonterminalTypes.R_FORMAT, NonterminalTypes.T1),
+
     new Instruction('xchg', '5', NonterminalTypes.R_FORMAT, NonterminalTypes.T4),
     new Instruction('sram', '1', NonterminalTypes.I_FORMAT, NonterminalTypes.T11),
 ];

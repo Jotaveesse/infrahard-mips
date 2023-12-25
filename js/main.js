@@ -266,6 +266,7 @@ function addToInstructionList(inst) {
             catch (error) {
                 compiling = false;
                 newElem.classList.add('failed-instruction');
+                newElem.scrollIntoView();
                 outputTextArea.value = `Instrução '${inst.name}' de código '0x${inst.code}'\n${error.name}`;
                 outputEditor.setValue(outputTextArea.value);
 

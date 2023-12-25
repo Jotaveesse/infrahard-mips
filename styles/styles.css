@@ -11,7 +11,11 @@ body {
     height: 100%;
     margin: 0;
     background-color: #090c16;
+}
 
+h3{
+    margin:0;
+    padding:0;
 }
 
 .title {
@@ -33,7 +37,7 @@ body {
     box-sizing: border-box;
 }
 
-.main *{
+.main * {
     -ms-overflow-style: none;
     /* IE and Edge */
     scrollbar-width: none;
@@ -59,13 +63,13 @@ body {
     overflow-y: auto;
     border-radius: 8px 8px 0px 0px;
     height: calc(100% - 40px);
-    
+
     background-color: #090c16;
 
     display: flex;
     flex-direction: column;
     row-gap: 2px;
-    padding-bottom:4px;
+    padding-bottom: 4px;
     box-sizing: border-box;
 }
 
@@ -92,28 +96,27 @@ body {
     background-color: #1c2129;
 }
 
-.instruction-code{
-    position:relative;
+.instruction-code {
+    position: relative;
 }
 
-.instruction-code input{
-    padding-left:17px;
-    font-size:13px;
+.instruction-code input {
+    padding-left: 17px;
+    font-size: 13px;
 }
 
 .input-prefix {
-  color:white;
-  position: absolute;
-  left: 4px; /* Adjust the distance from the input */
-  top: 48%;
-  transform: translateY(-43%);
-  font-size:13px;
-  font-weight:400;
-
+    color: white;
+    position: absolute;
+    left: 4px;
+    top: 48%;
+    transform: translateY(-43%);
+    font-size: 13px;
+    font-weight: 400;
 }
 
-.instruction-item input:focus{
-    outline:none;
+.instruction-item input:focus {
+    outline: none;
 }
 
 .instruction-item select {
@@ -144,7 +147,7 @@ body {
     border-radius: 4px;
     color: white;
     background-color: #12151d;
-    font-weight:100;
+    font-weight: 100;
     border: none;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
@@ -154,7 +157,8 @@ body {
     background-color: #1c2129;
 }
 
-.input-area, .output-area {
+.input-area,
+.output-area {
     width: 32%;
     height: 100%;
     background-color: #12151d;
@@ -166,7 +170,7 @@ body {
     border-radius: 8px;
 }
 
-.main > * > button{
+.main>*>button {
     height: 40px;
     width: 100%;
     color: white;
@@ -178,11 +182,70 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.main > * > button:hover{
+button:hover {
     cursor: pointer;
-    background-color: #1c2129;
+    background-color: #1c2129 !important;
 }
 
-.failed-instruction *{
+.failed-instruction * * {
     background-color: #b53 !important;
+}
+
+#info-button {
+    color: white;
+    background-color: #12151d;
+    border: none;
+    border-radius: 8px;
+    position: absolute;
+    right: 0%;
+    margin: 8px;
+    height: 44px;
+    width: 44px;
+    cursor: pointer;
+    font-size: 24px;
+    font-weight: 100;
+}
+
+
+.pop-up{
+    position: absolute;
+    display:none;
+    height:100%;
+    width:100%;
+    background-color: #0004;
+    z-index:100;
+}
+
+.pop-area{
+    margin:5vh 10vw;
+    width:80%;
+    height:90%;
+    border-radius: 16px;
+    background-color:#12151d;
+}
+
+.pop-text{
+    height:92%;
+    padding:12px;
+    color:white;
+    font-size:14px;
+    box-sizing: border-box;
+    overflow-y:auto;
+}
+
+.pop-button-area{
+    height:8%;
+}
+
+.pop-button-area button{
+    height:100%;
+    border:none;
+    border-radius: 0px 0px 16px 16px;
+    width:100%;
+    color: white;
+    font-weight: 100;
+    font-size: 18px;
+    background-color: #12151d;
+    border: none;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }

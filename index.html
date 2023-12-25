@@ -29,9 +29,65 @@
 </head>
 
 <body>
+
+    <div id="info-pop-up" class="pop-up">
+        <div class="pop-area">
+            <div class="pop-text">
+                <h3>Instruções Não Existentes</h3>
+                As instruções rte, xchg e sram não existem no repertório do Mars.<br>
+                A instrução null não existe no repertório do Mars já que seu objetivo é simular um opcode/func não existente.<br>
+                <br>
+                <h3>Registradores</h3>
+                Tanto o Mars quanto o Parser suportam referências de registradores por nome "$t2 | $a3 | $zero" e por número "$10 |  $7 | $0".<br>
+                Recomenda-se usar apenas referências por número para facilitar depuração e entendimento na CPU.<br>
+                Vale lembrar que no Mars não é permitida a escrita no registrador $zero/$0 e que o registrador $at/$1 é usado pelo compilador,
+                ou seja qualquer valor nele vai ser provavelmente mudado durante a execução.<br>
+                <br>
+                <h3>Jumps e Branches</h3>
+                O Mars não permite pular para um endereço específico "j 4 | beq $2, $3, 10 | bne $4, $6, -3",
+                só é possível pular pra uma label "j loop | beq $2, $3, final_if | bne $4, $6, rec_volta".<br>
+                Já o Parser permite o uso de ambos.<br>
+                É recomendado usar endereços específicos para a depuração da CPU,
+                já que as labels são convertidas para endereços no .mif.<br>
+                <br>
+                <h3>Stores e Loads</h3>
+                As instruções lh e lb tem funcionamento diferente na CPU e no Mars.<br>
+                No Mars se o lh ou lb retornarem um valor cujo bit mais significativo é 1, ele irá preencher os bits restantes com 1s ao invés de 0s,
+                na CPU esse preenchimento é sempre feito por 0s.<br>
+                Para ter o mesmo comportamento use as instruções lhu e lbu no Mars.<br>
+                <br>
+                No Mars o armazenamento de dados na memória só pode ocorrer em um intervalo da memória que tem início no endereço 268500992,
+                na CPU do projeto é possível escrever a partir do endereço 0.<br>
+                Portanto caso seja necessário testar um código no Mars e na CPU precisa haver uma modificação no endereço a ser lido/escrito.
+                Para isso basta adicionar o valor mencionado anteriormente ao endereço que será usado quando for testar no Mars.<br>
+                Isso pode ser feito através de um "lui $0, 4097", por exemplo:<br>
+                <br>
+                CPU<br>
+                addi $2, $2, 40<br>
+                addi $3, $3, 3<br>
+                sw $3, 0($2)          #Escrevendo 3 no endereço 40<br>
+                <br>
+                MARS<br>
+                lui $2, 4097<br>
+                addi $2, $2, 40<br>
+                addi $3, $0, 3<br>
+                sw $3, 0($2)          #Escrevendo 3 no endereço 40 a partir do 268500992<br>
+
+
+            </div>
+            <div class="pop-button-area">
+                <button id="pop-close">
+                    Ok
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="title">
         <span>Mips -> .mif</span>
+        <button id="info-button">?</button>
     </div>
+
     <div class="main">
         <div class="instructions-area">
             <div id="instruction-list" class="instruction-list"></div>

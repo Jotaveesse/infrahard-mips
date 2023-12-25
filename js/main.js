@@ -10,15 +10,15 @@ var addInstructionButton;
 var downloadButton;
 
 window.onload = function () {
-    inputTextArea = document.getElementById("input-text-area");
+        inputTextArea = document.getElementById("input-text-area");
     outputTextArea = document.getElementById("output-text-area");
-    compileButton = document.getElementById("compile-button");
+compileButton = document.getElementById("compile-button");
     parseButton = document.getElementById("parse-button");
     instructionList = document.getElementById("instruction-list");
     instructionTemplate = document.getElementById("instruction-item-template");
     addInstructionButton = document.getElementById("add-instruction");
-    downloadButton = document.getElementById("download-button");
-
+        downloadButton = document.getElementById("download-button");
+    
     //cria os editores do CodeMirror
     inputEditor = CodeMirror.fromTextArea(inputTextArea, {
         lineNumbers: true,
@@ -45,7 +45,7 @@ window.onload = function () {
             cancelled = true;
         }
         else {
-            cancelled=false;
+            cancelled = false;
             compile(inputEditor.getValue());
         }
     });
@@ -105,7 +105,7 @@ async function compile(source) {
             noChanges = false;
         }
     }
-    console.log('Mudança de instruções:', noChanges);
+    console.log('Mudança de instruções:', !noChanges);
 
     clearHighlights();
 
@@ -248,7 +248,7 @@ function addToInstructionList(inst) {
 
             }
             catch (error) {
-                compiling=false;
+                compiling = false;
                 newElem.classList.add('failed-instruction');
                 outputTextArea.value = `Instrução '${inst.name}' de código '0x${inst.code}'\n${error.name}`;
                 outputEditor.setValue(outputTextArea.value);
@@ -274,6 +274,11 @@ function displayError(error) {
         inputEditor.scrollIntoView(error.endPos, 50);
 
         outputTextArea.value = `Linha ${error.startPos.line}, coluna ${error.startPos.ch}\n${error.name}`;
+
+        //caso esteja marcando um newline marca a linha toda
+        if (inputEditor.getLine(error.startPos.line).length == error.startPos.ch) {
+            error.startPos.ch = 0;
+        }
 
         inputEditor.markText(error.startPos, error.endPos, {
             className: 'highlighted',

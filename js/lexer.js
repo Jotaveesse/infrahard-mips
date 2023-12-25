@@ -98,7 +98,9 @@ class Lexer {
             }
         } else if (this.curChar === '$') {
             const startPos = this.curPos;
-            this.nextChar();
+
+            if(this.peek()!=="\u0000")
+                this.nextChar();
 
 
             //nao aceita numero de multiplos digitos começados por 0

@@ -1,3 +1,4 @@
+var infoPopUp;
 var inputTextArea;
 var outputTextArea;
 var compileButton;
@@ -8,17 +9,23 @@ var instructionTemplate;
 var instructionList;
 var addInstructionButton;
 var downloadButton;
+var infoButton;
+var popCloseButton;
 
 window.onload = function () {
-        inputTextArea = document.getElementById("input-text-area");
+    infoPopUp = document.getElementById("info-pop-up");
+    inputTextArea = document.getElementById("input-text-area");
     outputTextArea = document.getElementById("output-text-area");
-compileButton = document.getElementById("compile-button");
-    parseButton = document.getElementById("parse-button");
     instructionList = document.getElementById("instruction-list");
     instructionTemplate = document.getElementById("instruction-item-template");
+
     addInstructionButton = document.getElementById("add-instruction");
-        downloadButton = document.getElementById("download-button");
-    
+    compileButton = document.getElementById("compile-button");
+    parseButton = document.getElementById("parse-button");
+    downloadButton = document.getElementById("download-button");
+    infoButton = document.getElementById("info-button");
+    popCloseButton = document.getElementById("pop-close");
+
     //cria os editores do CodeMirror
     inputEditor = CodeMirror.fromTextArea(inputTextArea, {
         lineNumbers: true,
@@ -40,6 +47,15 @@ compileButton = document.getElementById("compile-button");
     outputEditor.setOption('placeholder', 'Arquivo .mif sai aqui...');
 
     //EVENTOS
+    infoButton.addEventListener("click", function () {
+        infoPopUp.style.display = "block";
+    });
+
+    popCloseButton.addEventListener("click", function () {
+        infoPopUp.style.display = "none";
+    });
+
+
     compileButton.addEventListener("click", function () {
         if (compiling) {
             cancelled = true;

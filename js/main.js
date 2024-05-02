@@ -1,42 +1,48 @@
-var infoPopUp;
-var inputTextArea;
-var outputTextArea;
-var compileButton;
-var parseButton;
-var inputEditor;
-var outputEditor;
-var instructionTemplate;
-var instructionList;
-var addInstructionButton;
-var downloadButton;
-var infoButton;
-var popCloseButton;
+const Elements = {
+    infoPopUp: null,
+    inputTextArea: null,
+    outputTextArea: null,
+    inputEditor: null,
+    outputEditor: null,
+    instructionTemplate: null,
+    instructionList: null,
+}
+
+const Buttons = {
+    addInstruction: null,
+    download: null,
+    copy: null,
+    compile: null,
+    parse: null,
+    info: null,
+    popClose: null,
+}
 
 window.onload = function () {
-    infoPopUp = document.getElementById("info-pop-up");
-    inputTextArea = document.getElementById("input-text-area");
-    outputTextArea = document.getElementById("output-text-area");
-    instructionList = document.getElementById("instruction-list");
-    instructionTemplate = document.getElementById("instruction-item-template");
+    Elements.infoPopUp = document.getElementById("info-pop-up");
+    Elements.inputTextArea = document.getElementById("input-text-area");
+    Elements.outputTextArea = document.getElementById("output-text-area");
+    Elements.instructionList = document.getElementById("instruction-list");
+    Elements.instructionTemplate = document.getElementById("instruction-item-template");
 
-    addInstructionButton = document.getElementById("add-instruction");
-    compileButton = document.getElementById("compile-button");
-    parseButton = document.getElementById("parse-button");
-    downloadButton = document.getElementById("download-button");
-    copyButton = document.getElementById("copy-button");
-    infoButton = document.getElementById("info-button");
-    popCloseButton = document.getElementById("pop-close");
+    Buttons.addInstruction = document.getElementById("add-instruction");
+    Buttons.compile = document.getElementById("compile-button");
+    Buttons.parse = document.getElementById("parse-button");
+    Buttons.download = document.getElementById("download-button");
+    Buttons.copy = document.getElementById("copy-button");
+    Buttons.info = document.getElementById("info-button");
+    Buttons.popClose = document.getElementById("pop-close");
 
     //cria os editores do CodeMirror
-    inputEditor = CodeMirror.fromTextArea(inputTextArea, {
+    Elements.inputEditor = CodeMirror.fromTextArea(Elements.inputTextArea, {
         lineNumbers: true,
         firstLineNumber: 0,
     });
 
-    inputEditor.setOption('theme', 'blackboard');
-    inputEditor.setOption('placeholder', 'Insira seu código aqui...');
+    Elements.inputEditor.setOption('theme', 'blackboard');
+    Elements.inputEditor.setOption('placeholder', 'Insira seu código aqui...');
 
-    outputEditor = CodeMirror.fromTextArea(outputTextArea, {
+    Elements.outputEditor = CodeMirror.fromTextArea(Elements.outputTextArea, {
         mode: '',
         lineNumbers: true,
         firstLineNumber: 0,
@@ -44,20 +50,20 @@ window.onload = function () {
         readOnly: true,
     });
 
-    outputEditor.setOption('theme', 'blackboard');
-    outputEditor.setOption('placeholder', 'Arquivo .mif sai aqui...');
+    Elements.outputEditor.setOption('theme', 'blackboard');
+    Elements.outputEditor.setOption('placeholder', 'Arquivo .mif sai aqui...');
 
     //EVENTOS
-    infoButton.addEventListener("click", function () {
-        infoPopUp.style.display = "block";
+    Buttons.info.addEventListener("click", function () {
+        Elements.infoPopUp.style.display = "block";
     });
 
-    popCloseButton.addEventListener("click", function () {
-        infoPopUp.style.display = "none";
+    Buttons.popClose.addEventListener("click", function () {
+        Elements.infoPopUp.style.display = "none";
     });
 
 
-    compileButton.addEventListener("click", function () {
+    Buttons.compile.addEventListener("click", function () {
         if (compiling) {
             cancelled = true;
         }
@@ -65,7 +71,7 @@ window.onload = function () {
             //animação quando aperta pra compilar
             document.getElementsByClassName("output-area")[0].animate(
                 [
-                    { filter: "brightness(1.4)" },
+                    { filter: "brightness(1.8)" },
                     { filter: "brightness(1)" }
                 ],
                 {
@@ -74,34 +80,34 @@ window.onload = function () {
                 }
             );
             cancelled = false;
-            compile(inputEditor.getValue());
+            compile(Elements.inputEditor.getValue());
         }
     });
 
-    addInstructionButton.addEventListener("click", function () {
+    Buttons.addInstruction.addEventListener("click", function () {
         try {
             const newInst = new Instruction('', '', NonterminalTypes.R_FORMAT, NonterminalTypes.T1);
             instTemplates.push(newInst);
             addToInstructionList(newInst);
 
-            instructionList.scrollTop = instructionList.scrollHeight;
+            Elements.instructionList.scrollTop = Elements.instructionList.scrollHeight;
         }
         catch (error) {
 
         }
     });
 
-    downloadButton.addEventListener("click", function () {
-        downloadTextFile(outputEditor.getValue(), 'instrucoes.mif')
+    Buttons.download.addEventListener("click", function () {
+        downloadTextFile(Elements.outputEditor.getValue(), 'instrucoes.mif')
     });
 
-    copyButton.addEventListener("click", function () {
-        navigator.clipboard.writeText(outputEditor.getValue());
+    Buttons.copy.addEventListener("click", function () {
+        navigator.clipboard.writeText(Elements.outputEditor.getValue());
     });
 
-    inputEditor.on("change", function () {
+    Elements.inputEditor.on("change", function () {
         //atualizar a textarea permite que o texto permaneça caso atualize a pagina
-        inputTextArea.value = inputEditor.getValue();
+        Elements.inputTextArea.value = Elements.inputEditor.getValue();
 
         clearHighlights();
     });
@@ -127,7 +133,7 @@ async function compile(source) {
     let noChanges = true;
 
     //atualiza todas as instruções da lista
-    for (let elem of instructionList.children) {
+    for (let elem of Elements.instructionList.children) {
         const updateResult = elem.update();
         //se algum falhar em ser atualizada nao tenta compilar
         if (updateResult === false) {
@@ -166,8 +172,8 @@ async function compile(source) {
         const parseTree = await buildParseTree(source);
         const mifText = generateCode(parseTree.root);
 
-        outputTextArea.value = mifText;
-        outputEditor.setValue(outputTextArea.value);
+        Elements.outputTextArea.value = mifText;
+        Elements.outputEditor.setValue(Elements.outputTextArea.value);
     }
     catch (error) {
         updateProgress(1);
@@ -235,21 +241,21 @@ async function delay(ms) {
 
 function updateProgress(progress) {
     if (progress < 1) {
-        compileButton.style.background = `linear-gradient(to right, #1c2129 ${progress * 100}%, #12151d 0%)`;
-        compileButton.innerHTML = 'Cancelar';
+        Buttons.compile.style.background = `linear-gradient(to right, #1c2129 ${progress * 100}%, #12151d 0%)`;
+        Buttons.compile.innerHTML = 'Cancelar';
     }
     else {
-        compileButton.style.removeProperty('background');
-        compileButton.innerHTML = 'Compilar';
+        Buttons.compile.style.removeProperty('background');
+        Buttons.compile.innerHTML = 'Compilar';
 
     }
 }
 
 function addToInstructionList(inst) {
-    const clone = document.importNode(instructionTemplate.content, true);
-    instructionList.appendChild(clone);
+    const clone = document.importNode(Elements.instructionTemplate.content, true);
+    Elements.instructionList.appendChild(clone);
 
-    const newElem = instructionList.lastElementChild;
+    const newElem = Elements.instructionList.lastElementChild;
     const instName = newElem.querySelector('.instruction-name').children[0];
     const instCode = newElem.querySelector('.instruction-code').children[0];
     const instFormat = newElem.querySelector('.instruction-format').children[0];
@@ -283,8 +289,8 @@ function addToInstructionList(inst) {
                 compiling = false;
                 newElem.classList.add('failed-instruction');
                 newElem.scrollIntoView();
-                outputTextArea.value = `Instrução '${inst.name}' de código '0x${inst.code}'\n${error.name}`;
-                outputEditor.setValue(outputTextArea.value);
+                Elements.outputTextArea.value = `Instrução '${inst.name}' de código '0x${inst.code}'\n${error.name}`;
+                Elements.outputEditor.setValue(Elements.outputTextArea.value);
 
                 return false;
             }
@@ -304,27 +310,27 @@ function addToInstructionList(inst) {
 
 function displayError(error) {
     if (error.startPos && error.endPos) {
-        inputEditor.scrollIntoView(error.endPos, 50);
+        Elements.inputEditor.scrollIntoView(error.endPos, 50);
 
-        outputTextArea.value = `Linha ${error.startPos.line}, coluna ${error.startPos.ch}\n${error.name}`;
+        Elements.outputTextArea.value = `Linha ${error.startPos.line}, coluna ${error.startPos.ch}\n${error.name}`;
 
         //caso esteja marcando um newline marca a linha toda
-        if (inputEditor.getLine(error.startPos.line).length == error.startPos.ch) {
+        if (Elements.inputEditor.getLine(error.startPos.line).length == error.startPos.ch) {
             error.startPos.ch = 0;
         }
 
-        inputEditor.markText(error.startPos, error.endPos, {
+        Elements.inputEditor.markText(error.startPos, error.endPos, {
             className: 'highlighted',
         });
     }
     else
-        outputTextArea.value = `${error.name}`;
+        Elements.outputTextArea.value = `${error.name}`;
 
-    outputEditor.setValue(outputTextArea.value);
+    Elements.outputEditor.setValue(Elements.outputTextArea.value);
 }
 
 function clearHighlights() {
-    const marks = inputEditor.getAllMarks();
+    const marks = Elements.inputEditor.getAllMarks();
     for (const mark of marks) {
         mark.clear();
     }

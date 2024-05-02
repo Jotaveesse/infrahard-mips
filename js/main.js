@@ -23,6 +23,7 @@ window.onload = function () {
     compileButton = document.getElementById("compile-button");
     parseButton = document.getElementById("parse-button");
     downloadButton = document.getElementById("download-button");
+    copyButton = document.getElementById("copy-button");
     infoButton = document.getElementById("info-button");
     popCloseButton = document.getElementById("pop-close");
 
@@ -92,6 +93,10 @@ window.onload = function () {
 
     downloadButton.addEventListener("click", function () {
         downloadTextFile(outputEditor.getValue(), 'instrucoes.mif')
+    });
+
+    copyButton.addEventListener("click", function () {
+        navigator.clipboard.writeText(outputEditor.getValue());
     });
 
     inputEditor.on("change", function () {

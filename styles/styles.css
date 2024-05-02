@@ -1,3 +1,20 @@
+@media(max-width: 800px) or (max-aspect-ratio: 0.8) {
+    .main {
+        height: fit-content !important;
+        row-gap: 16px;
+        flex-direction: column-reverse;
+        align-items: center;
+    }
+
+    .input-area,
+    .output-area,
+    .instructions-area {
+        width: 80% !important;
+        min-width: 320px;
+        height: 80vh !important;
+    }
+}
+
 textarea {
     font-size: 20px;
 }
@@ -13,9 +30,9 @@ body {
     background-color: #090c16;
 }
 
-h3{
-    margin:0;
-    padding:0;
+h3 {
+    margin: 0;
+    padding: 0;
 }
 
 .title {
@@ -54,15 +71,15 @@ h3{
 
 .instructions-area {
     width: 32%;
-    height: 100%;
-    background-color: #12151d;
+    min-width: 320px;
     border-radius: 8px;
+    max-height: 100%;
 }
 
 .instruction-list {
     overflow-y: auto;
     border-radius: 8px 8px 0px 0px;
-    height: calc(100% - 40px);
+    max-height: calc(100% - 40px);
 
     background-color: #090c16;
 
@@ -176,14 +193,14 @@ h3{
     padding: 0px;
     color: white;
     font-weight: 100;
-    font-size: 18px;
+    font-size: 1em;
     background-color: #12151d;
     border: none;
     border-radius: 8px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.output-area button{
+.output-area button {
     width: 50%;
 }
 
@@ -211,45 +228,58 @@ button:hover {
     font-weight: 100;
 }
 
-.pop-up{
+.pop-up {
     position: absolute;
-    display:none;
-    height:100%;
-    width:100%;
+    display: none;
+    height: 100%;
+    width: 100%;
     background-color: #0004;
-    z-index:100;
+    z-index: 100;
 }
 
-.pop-area{
-    margin:5vh 10vw;
-    width:80%;
-    height:90%;
+.pop-area {
+    margin: 5vh 10vw;
+    width: 80%;
+    height: 90%;
     border-radius: 16px;
-    background-color:#12151d;
+    background-color: #12151d;
 }
 
-.pop-text{
-    height:92%;
-    padding:12px;
-    color:white;
-    font-size:14px;
+.pop-text {
+    height: 92%;
+    padding: 12px;
+    color: white;
+    font-size: 14px;
     box-sizing: border-box;
-    overflow-y:auto;
+    overflow-y: auto;
 }
 
-.pop-button-area{
-    height:8%;
+.pop-button-area {
+    height: 8%;
 }
 
-.pop-button-area button{
-    height:100%;
-    border:none;
+.pop-button-area button {
+    height: 100%;
+    border: none;
     border-radius: 0px 0px 16px 16px;
-    width:100%;
+    width: 100%;
     color: white;
     font-weight: 100;
     font-size: 18px;
     background-color: #12151d;
     border: none;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #12151d;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #334;
+    border-radius: 10px;
 }

@@ -61,6 +61,17 @@ window.onload = function () {
             cancelled = true;
         }
         else {
+            //animação quando aperta pra compilar
+            document.getElementsByClassName("output-area")[0].animate(
+                [
+                    { filter: "brightness(1.4)" },
+                    { filter: "brightness(1)" }
+                ],
+                {
+                    duration: 500,
+                    iterations: 1,
+                }
+            );
             cancelled = false;
             compile(inputEditor.getValue());
         }

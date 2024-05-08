@@ -256,11 +256,11 @@ function addToInstructionList(inst) {
     Elements.instructionList.appendChild(clone);
 
     const newElem = Elements.instructionList.lastElementChild;
-    const instName = newElem.querySelector('.instruction-name').children[0];
-    const instCode = newElem.querySelector('.instruction-code').children[0];
-    const instFormat = newElem.querySelector('.instruction-format').children[0];
-    const instSuffix = newElem.querySelector('.instruction-suffix').children[0];
-    const deleteButton = newElem.querySelector('.instruction-delete').children[0];
+    const instName = newElem.querySelector('.instruction-name input');
+    const instCode = newElem.querySelector('.instruction-code input');
+    const instFormat = newElem.querySelector('.instruction-format select');
+    const instSuffix = newElem.querySelector('.instruction-suffix select');
+    const deleteButton = newElem.querySelector('.instruction-delete button');
 
     instName.value = inst.name;
     instCode.value = inst.code;

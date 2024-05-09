@@ -66,6 +66,7 @@ h3 {
 
 .highlighted {
     background-color: #b53;
+    border-radius: 2px;
 }
 
 .instructions-area {

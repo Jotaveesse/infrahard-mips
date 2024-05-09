@@ -1,4 +1,5 @@
-const emptyChars = [' ', '\t', '\r', '\f'];
+const EOF_CHAR = '\u0000';
+
 class Lexer {
     constructor(input) {
         this.source = input;
@@ -13,26 +14,27 @@ class Lexer {
         this.curPos++;
         this.curColumn++;
         if (this.curPos >= this.source.length) {
-            this.curChar = '\u0000'; // EOF
+            this.curChar = EOF_CHAR;
         } else {
             this.curChar = this.source[this.curPos];
+        }
+
+        if (this.curChar === '\n') {
+            this.curLine++;
+            this.curColumn = 0;
         }
     }
 
     peek() {
         if (this.curPos + 1 >= this.source.length) {
-            return '\0';
+            return EOF_CHAR;
         } else {
             return this.source[this.curPos + 1];
         }
     }
 
-    abort(message) {
-        console.error("Erro léxico! " + message);
-    }
-
     skipWhitespace() {
-        while (emptyChars.includes(this.curChar)) {
+        while (/[^\S\n]/.test(this.curChar)) {
             this.nextChar();
         }
     }
@@ -41,7 +43,7 @@ class Lexer {
         if (this.curChar === '#') {
             this.nextChar();
 
-            while (this.curChar !== '\n' && this.curChar !== '\u0000') {
+            while (this.curChar !== '\n' && this.curChar !== EOF_CHAR) {
                 this.nextChar();
             }
 
@@ -56,12 +58,10 @@ class Lexer {
 
         let token = null;
 
-        if (this.curChar === "\u0000") {
+        if (this.curChar === EOF_CHAR) {
             token = new Token(this.curChar, TerminalTypes.map.EOF, this.curLine, this.curColumn);
         } else if (this.curChar === '\n') {
             token = new Token(this.curChar, TerminalTypes.map.NEWLINE, this.curLine, this.curColumn);
-            this.curLine++;
-            this.curColumn = 0;
         }
         else if (this.curChar === ',') {
             token = new Token(this.curChar, TerminalTypes.map.COMMA, this.curLine, this.curColumn);
@@ -90,27 +90,31 @@ class Lexer {
                 const text = this.source.substring(startPos, this.curPos + 1);
 
                 //se vier alguma letra apos o numero
-                if (this.peek().match(/[a-zA-Z_]/))
+                if (/[a-zA-Z_]/.test(this.peek()))
                     throw new CompilingError(errorTypes.invalidKeyword, { line: this.curLine, ch: this.curColumn - text.length },
                         { line: this.curLine, ch: this.curColumn + 1 }, text + this.peek());
 
                 token = new Token(text, TerminalTypes.map.NUMBER, this.curLine, this.curColumn);
             }
+        //registradores
         } else if (this.curChar === '$') {
             const startPos = this.curPos;
 
-            if(this.peek()!=="\u0000")
+            if(this.peek() !== EOF_CHAR)
                 this.nextChar();
-
 
             //nao aceita numero de multiplos digitos começados por 0
             if (this.curChar === '0' && isNum(this.peek())) {
                 throw new CompilingError(errorTypes.zeroStart, { line: this.curLine, ch: this.curColumn - 1 },
                     { line: this.curLine, ch: this.curColumn + 1 }, this.curChar + this.peek());
+                    
+            }
+            else if(/\s/.test(this.curChar)){
+                throw new CompilingError(errorTypes.invalidReg, { line: this.curLine, ch: this.curColumn - 2},
+                    { line: this.curLine, ch: this.curColumn }, this.source.substring(startPos, this.curPos + 1));
             }
             else {
-
-                while (/^[a-zA-Z0-9]+$/.test(this.peek())) {
+                while (/[^\s,]/.test(this.peek()) && this.peek() !== EOF_CHAR) {
                     this.nextChar();
                 }
 
@@ -118,6 +122,7 @@ class Lexer {
 
                 const dollarlessText = text.slice(1);
 
+                //checa se é uma referencia de registrador por numero ou por keyword
                 if (isNum(dollarlessText)) {
                     //se o numero do registrador for maior que 32
                     if (dollarlessText <= 32)
@@ -140,21 +145,29 @@ class Lexer {
 
                 }
             }
-        } else if (this.curChar.match(/[a-zA-Z_]/)) {
+        //labels e instrucoes
+        } else if (/[a-zA-Z_]/.test(this.curChar)) {
             const startPos = this.curPos;
             let peekChar = this.peek();
 
-            while (peekChar.match(/[a-zA-Z0-9_]/)) {
+            while (/[^\s\\]/.test(peekChar) && peekChar !== EOF_CHAR) {
                 this.nextChar();
                 peekChar = this.peek();
             }
 
             const text = this.source.substring(startPos, this.curPos + 1);
 
+            if(/[^a-zA-Z_]:/.test(text) || !/^[a-zA-Z_]+:?$/g.test(text)){
+                throw new CompilingError(errorTypes.invalidKeyword, { line: this.curLine, ch: this.curColumn - text.length },
+                    { line: this.curLine, ch: this.curColumn }, text);
+            }
+
             const kind = Token.checkIfKeyword(text);
+
+            //checa se é uma palavra reservada, se não for é uma label
             if (kind === null) {
-                if (peekChar === ':'){
-                    token = new Token(text, TerminalTypes.map.LABEL_DECL, this.curLine, this.curColumn);
+                if (text[text.length - 1] === ':'){
+                    token = new Token(text.slice(0,-1), TerminalTypes.map.LABEL_DECL, this.curLine, this.curColumn - 1);
                     this.nextChar();
                 }
                 else
@@ -212,39 +225,4 @@ Token.prototype.toString = function () {
 function isNum(str) {
     return !isNaN(str) &&
         !isNaN(parseFloat(str));
-}
-
-const registers = {
-    zero: 0,
-    at: 1,
-    v0: 2,
-    v1: 3,
-    a0: 4,
-    a1: 5,
-    a2: 6,
-    a3: 7,
-    t0: 8,
-    t1: 9,
-    t2: 10,
-    t3: 11,
-    t4: 12,
-    t5: 13,
-    t6: 14,
-    t7: 15,
-    s0: 16,
-    s1: 17,
-    s2: 18,
-    s3: 19,
-    s4: 20,
-    s5: 21,
-    s6: 22,
-    s7: 23,
-    t8: 24,
-    t9: 25,
-    k0: 26,
-    k1: 27,
-    gp: 28,
-    sp: 29,
-    fp: 30,
-    ra: 31,
 }

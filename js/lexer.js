@@ -198,15 +198,15 @@ class Token {
     }
 
     static checkIfKeyword(word) {
-        for (const kind of Object.keys(TerminalTypes.map)) {
-            //console.log(kind,word,TokenType[word] )
+        var keywordId = TerminalTypes.map[(word.toUpperCase() + '_INST')];
 
-            //100 a 400 sao as instruções
-            if (kind === word.toUpperCase() && TerminalTypes.map[kind] >= 100 && TerminalTypes.map[kind] < 400) {
-                return TerminalTypes.map[kind];
-            }
+        //100 a 400 sao as instruções
+        if(keywordId && keywordId >= 100 && keywordId < 400){
+            return keywordId;
         }
-        return null;
+        else{
+            return null;
+        }
     }
 
 }

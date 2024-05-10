@@ -18,6 +18,10 @@ const Buttons = {
     popClose: null,
 }
 
+var grammar;
+var firstCompile = true;
+var isCompiling = false;
+
 window.onload = function () {
     Elements.infoPopUp = document.getElementById("info-pop-up");
     Elements.inputTextArea = document.getElementById("input-text-area");
@@ -64,23 +68,24 @@ window.onload = function () {
 
 
     Buttons.compile.addEventListener("click", function () {
-        if (compiling) {
+        if (isCompiling) {
             cancelled = true;
         }
         else {
-            //animação quando aperta pra compilar
-            document.getElementsByClassName("output-area")[0].animate(
-                [
-                    { filter: "brightness(1.8)" },
-                    { filter: "brightness(1)" }
-                ],
-                {
-                    duration: 500,
-                    iterations: 1,
-                }
-            );
             cancelled = false;
-            compile(Elements.inputEditor.getValue());
+            compile(Elements.inputEditor.getValue()).then(()=>{
+                //animação quando aperta pra compilar
+                document.getElementsByClassName("output-area")[0].animate(
+                    [
+                        { filter: "brightness(1.8)" },
+                        { filter: "brightness(1)" }
+                    ],
+                    {
+                        duration: 500,
+                        iterations: 1,
+                    }
+                );
+            });
         }
     });
 
@@ -121,14 +126,10 @@ window.onload = function () {
 
 };
 
-var grammar;
-var firstCompile = true;
-var compiling = false;
-
 async function compile(source) {
-    compiling = true;
+    isCompiling = true;
 
-    const startTime = new Date();
+    const startTime = performance.now();
 
     let noChanges = true;
 
@@ -180,10 +181,10 @@ async function compile(source) {
         displayError(error);
     }
     finally {
-        compiling = false;
+        isCompiling = false;
     }
 
-    const endTime = new Date();
+    const endTime = performance.now();
     const elapsedTime = endTime - startTime;
     console.log(`Compilação demorou ${elapsedTime} millisegundos`);
 }
@@ -286,7 +287,7 @@ function addToInstructionList(inst) {
 
             }
             catch (error) {
-                compiling = false;
+                isCompiling = false;
                 newElem.classList.add('failed-instruction');
                 newElem.scrollIntoView();
                 Elements.outputTextArea.value = `Instrução '${inst.name}' de código '0x${inst.code}'\n${error.name}`;

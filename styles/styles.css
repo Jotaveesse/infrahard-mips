@@ -117,11 +117,14 @@ h3 {
     background-color: #1c2129;
 }
 
+.instruction-name input {
+    text-transform : uppercase;
+}
+
 .instruction-code {
     position: relative;
     display: flex;
 }
-
 .instruction-code input {
     padding-left:  0px;
 }

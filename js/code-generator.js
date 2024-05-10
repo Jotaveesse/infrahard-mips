@@ -18,7 +18,8 @@ function generateCode(rootNode) {
 
                 //valores padrão de cada segmento
                 const segments = {
-                    INST: format.nonterminals[0].symbol.type.toLowerCase(),
+                    INST: format.nonterminals[0].symbol.type.replace('_INST','').toLowerCase(),
+                    INTER_INST: format.nonterminals[0].symbol.type,
                     FORMAT: nonterminal.nonterminals[0].symbol.type,
                     SUFFIX: inst.nonterminals[0].symbol.type,
                     OPCODE: '0',
@@ -72,10 +73,10 @@ function generateCode(rootNode) {
 
                 // se for formato R o codigo fica no funct
                 if (segments.FORMAT === NonterminalTypes.R_FORMAT) {
-                    segments.FUNCT = parseInt(instCodes[segments.INST.toUpperCase()], 16);
+                    segments.FUNCT = parseInt(instCodes[segments.INTER_INST], 16);
                 }
                 else {
-                    segments.OPCODE = parseInt(instCodes[segments.INST.toUpperCase()], 16);
+                    segments.OPCODE = parseInt(instCodes[segments.INTER_INST], 16);
                 }
 
                 //converte os segmentos para o texto em binario

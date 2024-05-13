@@ -66,25 +66,15 @@ window.onload = function () {
         Elements.infoPopUp.style.display = "none";
     });
 
-
+   
     Buttons.compile.addEventListener("click", function () {
         if (isCompiling) {
             cancelled = true;
         }
         else {
             cancelled = false;
-            compile(Elements.inputEditor.getValue()).then(()=>{
-                //animação quando aperta pra compilar
-                document.getElementsByClassName("output-area")[0].animate(
-                    [
-                        { filter: "brightness(1.8)" },
-                        { filter: "brightness(1)" }
-                    ],
-                    {
-                        duration: 500,
-                        iterations: 1,
-                    }
-                );
+            compile(Elements.inputEditor.getValue()).then(() => {
+                blinkOutputArea();
             });
         }
     });
@@ -108,6 +98,7 @@ window.onload = function () {
 
     Buttons.copy.addEventListener("click", function () {
         navigator.clipboard.writeText(Elements.outputEditor.getValue());
+        blinkOutputArea();
     });
 
     Elements.inputEditor.on("change", function () {
@@ -220,8 +211,8 @@ async function buildParseTree(source) {
 
         //delay para permitir que a UI seja atualizada
         count++;
-        if (count % 100 == 0)
-            await delay(10);
+        if (count % 1000 == 0)
+            await delay(1);
 
         if (cancelled) {
             updateProgress(1);  //atualiza progresso para o final
@@ -335,6 +326,20 @@ function clearHighlights() {
     for (const mark of marks) {
         mark.clear();
     }
+}
+
+function blinkOutputArea() {
+    //animação quando aperta pra compilar
+    document.getElementsByClassName("output-area")[0].animate(
+        [
+            { filter: "brightness(1.8)" },
+            { filter: "brightness(1)" }
+        ],
+        {
+            duration: 500,
+            iterations: 1,
+        }
+    );
 }
 
 function downloadTextFile(text, fileName) {

@@ -91,7 +91,7 @@ function generateCode(rootNode) {
         }
     }
 
-    return formatCode(converted);
+    return formatCode(converted, 0);
 }
 
 //cria a lista de labels para onde apontam
@@ -169,13 +169,17 @@ function formatInstruction(inputString, segments) {
 }
 
 //adiciona a formatacao do codigo inteiro e une as instruções
-function formatCode(instructions) {
-    const initialString = `DEPTH = ${instructions.length * 4};\nWIDTH = 8;\n\nADDRESS_RADIX = DEC;\nDATA_RADIX = BIN;\nCONTENT\nBEGIN\n\n`;
+function formatCode(instructions, minLength) {
+    const initialString = `DEPTH = ${Math.max(instructions.length, minLength) * 4};\nWIDTH = 8;\n\nADDRESS_RADIX = DEC;\nDATA_RADIX = BIN;\nCONTENT\nBEGIN\n\n`;
 
     let mergedLines = [];
 
     for (let i = 0; i < instructions.length; i++) {
         mergedLines[i] = instructions[i].join('\n');
+    }
+
+    while(mergedLines.length < minLength){
+        mergedLines.push(`${padNumber(mergedLines.length * 4, 3)} : 00000000;\n${padNumber(mergedLines.length * 4 + 1, 3)} : 00000000;\n${padNumber(mergedLines.length * 4 + 2, 3)} : 00000000;\n${padNumber(mergedLines.length * 4 + 3, 3)} : 00000000;`)
     }
 
     let mergedInsts = mergedLines.join('\n\n');

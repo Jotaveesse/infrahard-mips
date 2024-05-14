@@ -1,4 +1,4 @@
-function generateCode(rootNode) {
+function generateCode(rootNode, minSize) {
     const stack = [];
     const converted = [];
     stack.unshift(rootNode);
@@ -91,7 +91,7 @@ function generateCode(rootNode) {
         }
     }
 
-    return formatCode(converted, 0);
+    return formatCode(converted, minSize);
 }
 
 //cria a lista de labels para onde apontam
@@ -170,7 +170,8 @@ function formatInstruction(inputString, segments) {
 
 //adiciona a formatacao do codigo inteiro e une as instruções
 function formatCode(instructions, minLength) {
-    const initialString = `DEPTH = ${Math.max(instructions.length, minLength) * 4};\nWIDTH = 8;\n\nADDRESS_RADIX = DEC;\nDATA_RADIX = BIN;\nCONTENT\nBEGIN\n\n`;
+    minLength = isNaN(minLength) ? 0 : minLength;
+    const initialString = `DEPTH = ${Math.max(instructions.length * 4, minLength)};\nWIDTH = 8;\n\nADDRESS_RADIX = DEC;\nDATA_RADIX = BIN;\nCONTENT\nBEGIN\n\n`;
 
     let mergedLines = [];
 
@@ -178,8 +179,13 @@ function formatCode(instructions, minLength) {
         mergedLines[i] = instructions[i].join('\n');
     }
 
-    while(mergedLines.length < minLength){
-        mergedLines.push(`${padNumber(mergedLines.length * 4, 3)} : 00000000;\n${padNumber(mergedLines.length * 4 + 1, 3)} : 00000000;\n${padNumber(mergedLines.length * 4 + 2, 3)} : 00000000;\n${padNumber(mergedLines.length * 4 + 3, 3)} : 00000000;`)
+    while(mergedLines.length < Math.ceil(minLength/4)){
+        var emptyString = "";
+        var loops = mergedLines.length == Math.ceil(minLength/4) -1 ? minLength - mergedLines.length * 4 : 4;
+        for (let i = 0; i < loops; i++) {
+            emptyString += `${padNumber(mergedLines.length * 4 + i, 3)} : 00000000;${ (i != (loops - 1)) ? "\n" : ""}`;
+        }
+        mergedLines.push(emptyString);
     }
 
     let mergedInsts = mergedLines.join('\n\n');

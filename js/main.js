@@ -1,11 +1,13 @@
 const Elements = {
     infoPopUp: null,
+    settingsPopUp: null,
     inputTextArea: null,
     outputTextArea: null,
     inputEditor: null,
     outputEditor: null,
     instructionTemplate: null,
     instructionList: null,
+    mifSize: null,
 }
 
 const Buttons = {
@@ -15,7 +17,9 @@ const Buttons = {
     compile: null,
     parse: null,
     info: null,
-    popClose: null,
+    settings: null,
+    infoPopClose: null,
+    settingsPopClose: null,
 }
 
 var grammar;
@@ -24,10 +28,12 @@ var isCompiling = false;
 
 window.onload = function () {
     Elements.infoPopUp = document.getElementById("info-pop-up");
+    Elements.settingsPopUp = document.getElementById("settings-pop-up");
     Elements.inputTextArea = document.getElementById("input-text-area");
     Elements.outputTextArea = document.getElementById("output-text-area");
     Elements.instructionList = document.getElementById("instruction-list");
     Elements.instructionTemplate = document.getElementById("instruction-item-template");
+    Elements.mifSize = document.getElementById("mif-size");
 
     Buttons.addInstruction = document.getElementById("add-instruction");
     Buttons.compile = document.getElementById("compile-button");
@@ -35,7 +41,9 @@ window.onload = function () {
     Buttons.download = document.getElementById("download-button");
     Buttons.copy = document.getElementById("copy-button");
     Buttons.info = document.getElementById("info-button");
-    Buttons.popClose = document.getElementById("pop-close");
+    Buttons.settings = document.getElementById("settings-button");
+    Buttons.infoPopClose = document.getElementById("info-pop-close");
+    Buttons.settingsPopClose = document.getElementById("settings-pop-close");
 
     //cria os editores do CodeMirror
     Elements.inputEditor = CodeMirror.fromTextArea(Elements.inputTextArea, {
@@ -59,11 +67,19 @@ window.onload = function () {
 
     //EVENTOS
     Buttons.info.addEventListener("click", function () {
-        Elements.infoPopUp.style.display = "block";
+        Elements.infoPopUp.style.display = "flex";
     });
 
-    Buttons.popClose.addEventListener("click", function () {
+    Buttons.infoPopClose.addEventListener("click", function () {
         Elements.infoPopUp.style.display = "none";
+    });
+
+    Buttons.settings.addEventListener("click", function () {
+        Elements.settingsPopUp.style.display = "flex";
+    });
+
+    Buttons.settingsPopClose.addEventListener("click", function () {
+        Elements.settingsPopUp.style.display = "none";
     });
 
    
@@ -162,7 +178,7 @@ async function compile(source) {
 
     try {
         const parseTree = await buildParseTree(source);
-        const mifText = generateCode(parseTree.root);
+        const mifText = generateCode(parseTree.root, Elements.mifSize.value);
 
         Elements.outputTextArea.value = mifText;
         Elements.outputEditor.setValue(Elements.outputTextArea.value);

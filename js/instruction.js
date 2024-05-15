@@ -8,10 +8,12 @@ const instErrorTypes = {
 class Instruction {
     constructor(name, code, format, suffix) {
         this.name = name.toUpperCase();
+        this.interName = this.name + '_INST';
         this.code = code;
         this.format = format;
         this.suffix = suffix;
         this.productions = [];
+        this.isInParser = false;
     }
 
     addToParser() {
@@ -26,7 +28,7 @@ class Instruction {
             throw invalidResult;
         }
 
-        instCodes[this.name] = this.code;
+        instCodes[this.interName] = this.code;
 
         let start;
         if (this.format == NonterminalTypes.R_FORMAT)
@@ -39,26 +41,27 @@ class Instruction {
         //escolhe o menor numero disponivel pro formato escolhido
         for (let i = start; i < (start + 100); i++) {
             if (TerminalTypes.revMap[i] === undefined) {
-                TerminalTypes.map[this.name] = i;
+                TerminalTypes.map[this.interName] = i;
                 TerminalTypes.update();
                 break;
             }
         }
-        NonterminalTypes[this.name] = this.name;
+        NonterminalTypes[this.interName] = this.interName;
 
         //cria os simbolos que serao usados no parser
-        t_symbols[this.name] = new Terminal(TerminalTypes.map[this.name]);
-        nt_symbols[this.name] = new Nonterminal(NonterminalTypes[this.name]);
+        t_symbols[this.interName] = new Terminal(TerminalTypes.map[this.interName]);
+        nt_symbols[this.interName] = new Nonterminal(NonterminalTypes[this.interName]);
 
         //cria as regras dessa instrução
         this.productions = [
-            new Rule(nt_symbols[this.format], [nt_symbols[this.name]]),
-            new Rule(nt_symbols[this.name], [t_symbols[this.name], nt_symbols[this.suffix]])
+            new Rule(nt_symbols[this.format], [nt_symbols[this.interName]]),
+            new Rule(nt_symbols[this.interName], [t_symbols[this.interName], nt_symbols[this.suffix]])
         ]
 
         grammarProductions.push(...this.productions);
 
-        return true;
+        this.isInParser = true;
+        return this.isInParser;
     }
 
     update(name, code, format, suffix) {
@@ -66,25 +69,28 @@ class Instruction {
         this.removeFromParser();
 
         this.name = name.toUpperCase();
+        this.interName = this.name + '_INST';
         this.code = code;
         this.format = format;
         this.suffix = suffix;
         this.productions = [];
 
-        return this.addToParser();
+        this.addToParser();
+
+        return this.isInParser;
     }
 
     removeFromParser() {
-        if (!this.alreadyExists()) {
+        if (!this.alreadyExists() || !this.isInParser) {
             return false;
         }
 
-        delete instCodes[this.name];
-        delete TerminalTypes.map[this.name];
+        delete instCodes[this.interName];
+        delete TerminalTypes.map[this.interName];
         TerminalTypes.update();
-        delete t_symbols[this.name];
-        delete NonterminalTypes[this.name];
-        delete nt_symbols[this.name];
+        delete t_symbols[this.interName];
+        delete NonterminalTypes[this.interName];
+        delete nt_symbols[this.interName];
 
         //remove as regras da gramatica
         for (const rule of this.productions) {
@@ -95,10 +101,11 @@ class Instruction {
         }
 
         this.productions = [];
+        this.isInParser = false;
     }
 
     isNameTaken(name) {
-        name= name.toUpperCase();
+        name = name.toUpperCase();
         let nameExists = false;
 
         nameExists ||= instCodes[name] !== undefined;
@@ -112,7 +119,7 @@ class Instruction {
     }
 
     alreadyExists() {
-        const nameExists = this.isNameTaken(this.name);
+        const nameExists = this.isNameTaken(this.interName);
         if (nameExists)
             return nameExists;
 

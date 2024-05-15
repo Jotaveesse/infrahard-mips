@@ -1,11 +1,14 @@
 const Elements = {
     infoPopUp: null,
+    settingsPopUp: null,
     inputTextArea: null,
     outputTextArea: null,
     inputEditor: null,
     outputEditor: null,
     instructionTemplate: null,
     instructionList: null,
+    mifSize: null,
+    mifFileName: null,
 }
 
 const Buttons = {
@@ -15,15 +18,24 @@ const Buttons = {
     compile: null,
     parse: null,
     info: null,
-    popClose: null,
+    settings: null,
+    infoPopClose: null,
+    settingsPopClose: null,
 }
+
+var grammar;
+var firstCompile = true;
+var isCompiling = false;
 
 window.onload = function () {
     Elements.infoPopUp = document.getElementById("info-pop-up");
+    Elements.settingsPopUp = document.getElementById("settings-pop-up");
     Elements.inputTextArea = document.getElementById("input-text-area");
     Elements.outputTextArea = document.getElementById("output-text-area");
     Elements.instructionList = document.getElementById("instruction-list");
     Elements.instructionTemplate = document.getElementById("instruction-item-template");
+    Elements.mifSize = document.getElementById("mif-size");
+    Elements.mifFileName = document.getElementById("mif-file-name");
 
     Buttons.addInstruction = document.getElementById("add-instruction");
     Buttons.compile = document.getElementById("compile-button");
@@ -31,7 +43,9 @@ window.onload = function () {
     Buttons.download = document.getElementById("download-button");
     Buttons.copy = document.getElementById("copy-button");
     Buttons.info = document.getElementById("info-button");
-    Buttons.popClose = document.getElementById("pop-close");
+    Buttons.settings = document.getElementById("settings-button");
+    Buttons.infoPopClose = document.getElementById("info-pop-close");
+    Buttons.settingsPopClose = document.getElementById("settings-pop-close");
 
     //cria os editores do CodeMirror
     Elements.inputEditor = CodeMirror.fromTextArea(Elements.inputTextArea, {
@@ -55,32 +69,31 @@ window.onload = function () {
 
     //EVENTOS
     Buttons.info.addEventListener("click", function () {
-        Elements.infoPopUp.style.display = "block";
+        Elements.infoPopUp.style.display = "flex";
     });
 
-    Buttons.popClose.addEventListener("click", function () {
+    Buttons.infoPopClose.addEventListener("click", function () {
         Elements.infoPopUp.style.display = "none";
+    });
+
+    Buttons.settings.addEventListener("click", function () {
+        Elements.settingsPopUp.style.display = "flex";
+    });
+
+    Buttons.settingsPopClose.addEventListener("click", function () {
+        Elements.settingsPopUp.style.display = "none";
     });
 
 
     Buttons.compile.addEventListener("click", function () {
-        if (compiling) {
+        if (isCompiling) {
             cancelled = true;
         }
         else {
-            //animação quando aperta pra compilar
-            document.getElementsByClassName("output-area")[0].animate(
-                [
-                    { filter: "brightness(1.8)" },
-                    { filter: "brightness(1)" }
-                ],
-                {
-                    duration: 500,
-                    iterations: 1,
-                }
-            );
             cancelled = false;
-            compile(Elements.inputEditor.getValue());
+            compile(Elements.inputEditor.getValue()).then(() => {
+                blinkOutputArea();
+            });
         }
     });
 
@@ -98,11 +111,20 @@ window.onload = function () {
     });
 
     Buttons.download.addEventListener("click", function () {
-        downloadTextFile(Elements.outputEditor.getValue(), 'instrucoes.mif')
+        var fileName = Elements.mifFileName.value;
+
+        if(!fileName)
+            fileName = 'instrucoes.mif';
+        
+        if(!fileName.includes('.mif'))
+            fileName += '.mif'
+
+        downloadTextFile(Elements.outputEditor.getValue(), fileName)
     });
 
     Buttons.copy.addEventListener("click", function () {
         navigator.clipboard.writeText(Elements.outputEditor.getValue());
+        blinkOutputArea();
     });
 
     Elements.inputEditor.on("change", function () {
@@ -121,14 +143,10 @@ window.onload = function () {
 
 };
 
-var grammar;
-var firstCompile = true;
-var compiling = false;
-
 async function compile(source) {
-    compiling = true;
+    isCompiling = true;
 
-    const startTime = new Date();
+    const startTime = performance.now();
 
     let noChanges = true;
 
@@ -170,20 +188,20 @@ async function compile(source) {
 
     try {
         const parseTree = await buildParseTree(source);
-        const mifText = generateCode(parseTree.root);
+        const mifText = generateCode(parseTree.root, Elements.mifSize.value);
 
         Elements.outputTextArea.value = mifText;
         Elements.outputEditor.setValue(Elements.outputTextArea.value);
     }
     catch (error) {
         updateProgress(1);
-        displayError(error);
+        displayCodeError(error);
     }
     finally {
-        compiling = false;
+        isCompiling = false;
     }
 
-    const endTime = new Date();
+    const endTime = performance.now();
     const elapsedTime = endTime - startTime;
     console.log(`Compilação demorou ${elapsedTime} millisegundos`);
 }
@@ -219,8 +237,8 @@ async function buildParseTree(source) {
 
         //delay para permitir que a UI seja atualizada
         count++;
-        if (count % 100 == 0)
-            await delay(10);
+        if (count % 1000 == 0)
+            await delay(1);
 
         if (cancelled) {
             updateProgress(1);  //atualiza progresso para o final
@@ -267,31 +285,27 @@ function addToInstructionList(inst) {
     instFormat.value = inst.format;
     instSuffix.value = inst.suffix;
 
+    newElem.inst = inst;
 
     //função que é chamada atraves do elemento da pagina
     newElem.update = function () {
-        const wasChanged = instName.value.toUpperCase() !== inst.name ||
-            instCode.value !== inst.code ||
-            NonterminalTypes[instFormat.value] !== inst.format ||
-            NonterminalTypes[instSuffix.value] !== inst.suffix;
+        const wasChanged = instName.value.toUpperCase() !== this.inst.name ||
+            instCode.value !== this.inst.code ||
+            NonterminalTypes[instFormat.value] !== this.inst.format ||
+            NonterminalTypes[instSuffix.value] !== this.inst.suffix;
 
-        const failedPrev = newElem.classList.contains('failed-instruction');
+        const failedPrev = this.classList.contains('failed-instruction');
 
         //so tenta atualizar se for necessario
         if (wasChanged || failedPrev) {
             try {
-                inst.update(instName.value, instCode.value, NonterminalTypes[instFormat.value], NonterminalTypes[instSuffix.value]);
-                newElem.classList.remove('failed-instruction');
+                this.inst.update(instName.value, instCode.value, NonterminalTypes[instFormat.value], NonterminalTypes[instSuffix.value]);
+                this.classList.remove('failed-instruction');
                 return true;
 
             }
             catch (error) {
-                compiling = false;
-                newElem.classList.add('failed-instruction');
-                newElem.scrollIntoView();
-                Elements.outputTextArea.value = `Instrução '${inst.name}' de código '0x${inst.code}'\n${error.name}`;
-                Elements.outputEditor.setValue(Elements.outputTextArea.value);
-
+                displayInstError(this, error);
                 return false;
             }
         }
@@ -308,7 +322,7 @@ function addToInstructionList(inst) {
     });
 }
 
-function displayError(error) {
+function displayCodeError(error) {
     if (error.startPos && error.endPos) {
         Elements.inputEditor.scrollIntoView(error.endPos, 50);
 
@@ -329,11 +343,33 @@ function displayError(error) {
     Elements.outputEditor.setValue(Elements.outputTextArea.value);
 }
 
+function displayInstError(instElem, error) {
+    isCompiling = false;
+    instElem.classList.add('failed-instruction');
+    instElem.scrollIntoView();
+    Elements.outputTextArea.value = `Instrução '${instElem.inst.name}' de código '0x${instElem.inst.code}'\n${error.name}`;
+    Elements.outputEditor.setValue(Elements.outputTextArea.value);
+}
+
 function clearHighlights() {
     const marks = Elements.inputEditor.getAllMarks();
     for (const mark of marks) {
         mark.clear();
     }
+}
+
+function blinkOutputArea() {
+    //animação quando aperta pra compilar
+    document.getElementsByClassName("output-area")[0].animate(
+        [
+            { filter: "brightness(1.8)" },
+            { filter: "brightness(1)" }
+        ],
+        {
+            duration: 500,
+            iterations: 1,
+        }
+    );
 }
 
 function downloadTextFile(text, fileName) {

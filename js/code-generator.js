@@ -1,4 +1,4 @@
-function generateCode(rootNode) {
+function generateCode(rootNode, minSize) {
     const stack = [];
     const converted = [];
     stack.unshift(rootNode);
@@ -18,7 +18,8 @@ function generateCode(rootNode) {
 
                 //valores padrão de cada segmento
                 const segments = {
-                    INST: format.nonterminals[0].symbol.type.toLowerCase(),
+                    INST: format.nonterminals[0].symbol.type.replace('_INST','').toLowerCase(),
+                    INTER_INST: format.nonterminals[0].symbol.type,
                     FORMAT: nonterminal.nonterminals[0].symbol.type,
                     SUFFIX: inst.nonterminals[0].symbol.type,
                     OPCODE: '0',
@@ -72,10 +73,10 @@ function generateCode(rootNode) {
 
                 // se for formato R o codigo fica no funct
                 if (segments.FORMAT === NonterminalTypes.R_FORMAT) {
-                    segments.FUNCT = parseInt(instCodes[segments.INST.toUpperCase()], 16);
+                    segments.FUNCT = parseInt(instCodes[segments.INTER_INST], 16);
                 }
                 else {
-                    segments.OPCODE = parseInt(instCodes[segments.INST.toUpperCase()], 16);
+                    segments.OPCODE = parseInt(instCodes[segments.INTER_INST], 16);
                 }
 
                 //converte os segmentos para o texto em binario
@@ -90,7 +91,7 @@ function generateCode(rootNode) {
         }
     }
 
-    return formatCode(converted);
+    return formatCode(converted, minSize);
 }
 
 //cria a lista de labels para onde apontam
@@ -168,13 +169,23 @@ function formatInstruction(inputString, segments) {
 }
 
 //adiciona a formatacao do codigo inteiro e une as instruções
-function formatCode(instructions) {
-    const initialString = `DEPTH = ${instructions.length * 4};\nWIDTH = 8;\n\nADDRESS_RADIX = DEC;\nDATA_RADIX = BIN;\nCONTENT\nBEGIN\n\n`;
+function formatCode(instructions, minLength) {
+    minLength = isNaN(minLength) ? 0 : minLength;
+    const initialString = `DEPTH = ${Math.max(instructions.length * 4, minLength)};\nWIDTH = 8;\n\nADDRESS_RADIX = DEC;\nDATA_RADIX = BIN;\nCONTENT\nBEGIN\n\n`;
 
     let mergedLines = [];
 
     for (let i = 0; i < instructions.length; i++) {
         mergedLines[i] = instructions[i].join('\n');
+    }
+
+    while(mergedLines.length < Math.ceil(minLength/4)){
+        var emptyString = "";
+        var loops = mergedLines.length == Math.ceil(minLength/4) -1 ? minLength - mergedLines.length * 4 : 4;
+        for (let i = 0; i < loops; i++) {
+            emptyString += `${padNumber(mergedLines.length * 4 + i, 3)} : 00000000;${ (i != (loops - 1)) ? "\n" : ""}`;
+        }
+        mergedLines.push(emptyString);
     }
 
     let mergedInsts = mergedLines.join('\n\n');

@@ -8,6 +8,7 @@ const Elements = {
     instructionTemplate: null,
     instructionList: null,
     mifSize: null,
+    mifFileName: null,
 }
 
 const Buttons = {
@@ -34,6 +35,7 @@ window.onload = function () {
     Elements.instructionList = document.getElementById("instruction-list");
     Elements.instructionTemplate = document.getElementById("instruction-item-template");
     Elements.mifSize = document.getElementById("mif-size");
+    Elements.mifFileName = document.getElementById("mif-file-name");
 
     Buttons.addInstruction = document.getElementById("add-instruction");
     Buttons.compile = document.getElementById("compile-button");
@@ -109,7 +111,15 @@ window.onload = function () {
     });
 
     Buttons.download.addEventListener("click", function () {
-        downloadTextFile(Elements.outputEditor.getValue(), 'instrucoes.mif')
+        var fileName = Elements.mifFileName.value;
+
+        if(!fileName)
+            fileName = 'instrucoes.mif';
+        
+        if(!fileName.includes('.mif'))
+            fileName += '.mif'
+
+        downloadTextFile(Elements.outputEditor.getValue(), fileName)
     });
 
     Buttons.copy.addEventListener("click", function () {

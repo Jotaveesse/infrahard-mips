@@ -53,17 +53,6 @@ h3 {
     box-sizing: border-box;
 }
 
-.main * {
-    -ms-overflow-style: none;
-    /* IE and Edge */
-    scrollbar-width: none;
-    /* Firefox */
-}
-
-.main *::-webkit-scrollbar {
-    display: none;
-}
-
 .highlighted {
     background-color: #b53;
     border-radius: 2px;
@@ -282,22 +271,22 @@ button:hover {
     background-color: #12151d;
 }
 
-.settings-input {
+.settings-field {
     height: 50px;
     display: flex;
     align-items: center;
     padding: 16px;
 }
 
-.settings-input span {
+.settings-field span {
     color: white;
     font-size: 14px;
-    width: 50%;
+    width: 60%;
 }
 
-.settings-input input {
+.settings-field input {
     height: 100%;
-    width: 50%;
+    width: 40%;
     text-align: center;
     color: white;
     background-color: #090c16;
@@ -334,7 +323,8 @@ button:hover {
 }
 
 ::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
+    height: 4px;
 }
 
 ::-webkit-scrollbar-track {

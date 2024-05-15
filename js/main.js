@@ -82,7 +82,7 @@ window.onload = function () {
         Elements.settingsPopUp.style.display = "none";
     });
 
-   
+
     Buttons.compile.addEventListener("click", function () {
         if (isCompiling) {
             cancelled = true;
@@ -185,7 +185,7 @@ async function compile(source) {
     }
     catch (error) {
         updateProgress(1);
-        displayError(error);
+        displayCodeError(error);
     }
     finally {
         isCompiling = false;
@@ -275,31 +275,27 @@ function addToInstructionList(inst) {
     instFormat.value = inst.format;
     instSuffix.value = inst.suffix;
 
+    newElem.inst = inst;
 
     //função que é chamada atraves do elemento da pagina
     newElem.update = function () {
-        const wasChanged = instName.value.toUpperCase() !== inst.name ||
-            instCode.value !== inst.code ||
-            NonterminalTypes[instFormat.value] !== inst.format ||
-            NonterminalTypes[instSuffix.value] !== inst.suffix;
+        const wasChanged = instName.value.toUpperCase() !== this.inst.name ||
+            instCode.value !== this.inst.code ||
+            NonterminalTypes[instFormat.value] !== this.inst.format ||
+            NonterminalTypes[instSuffix.value] !== this.inst.suffix;
 
-        const failedPrev = newElem.classList.contains('failed-instruction');
+        const failedPrev = this.classList.contains('failed-instruction');
 
         //so tenta atualizar se for necessario
         if (wasChanged || failedPrev) {
             try {
-                inst.update(instName.value, instCode.value, NonterminalTypes[instFormat.value], NonterminalTypes[instSuffix.value]);
-                newElem.classList.remove('failed-instruction');
+                this.inst.update(instName.value, instCode.value, NonterminalTypes[instFormat.value], NonterminalTypes[instSuffix.value]);
+                this.classList.remove('failed-instruction');
                 return true;
 
             }
             catch (error) {
-                isCompiling = false;
-                newElem.classList.add('failed-instruction');
-                newElem.scrollIntoView();
-                Elements.outputTextArea.value = `Instrução '${inst.name}' de código '0x${inst.code}'\n${error.name}`;
-                Elements.outputEditor.setValue(Elements.outputTextArea.value);
-
+                displayInstError(this, error);
                 return false;
             }
         }
@@ -316,7 +312,7 @@ function addToInstructionList(inst) {
     });
 }
 
-function displayError(error) {
+function displayCodeError(error) {
     if (error.startPos && error.endPos) {
         Elements.inputEditor.scrollIntoView(error.endPos, 50);
 
@@ -334,6 +330,14 @@ function displayError(error) {
     else
         Elements.outputTextArea.value = `${error.name}`;
 
+    Elements.outputEditor.setValue(Elements.outputTextArea.value);
+}
+
+function displayInstError(instElem, error) {
+    isCompiling = false;
+    instElem.classList.add('failed-instruction');
+    instElem.scrollIntoView();
+    Elements.outputTextArea.value = `Instrução '${instElem.inst.name}' de código '0x${instElem.inst.code}'\n${error.name}`;
     Elements.outputEditor.setValue(Elements.outputTextArea.value);
 }
 

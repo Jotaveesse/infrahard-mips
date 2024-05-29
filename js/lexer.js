@@ -114,7 +114,7 @@ class Lexer {
                     { line: this.curLine, ch: this.curColumn }, this.source.substring(startPos, this.curPos + 1));
             }
             else {
-                while (/[^\s,]/.test(this.peek()) && this.peek() !== EOF_CHAR) {
+                while (/[^\s),]/.test(this.peek()) && this.peek() !== EOF_CHAR) {
                     this.nextChar();
                 }
 

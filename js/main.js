@@ -113,10 +113,10 @@ window.onload = function () {
     Buttons.download.addEventListener("click", function () {
         var fileName = Elements.mifFileName.value;
 
-        if(!fileName)
+        if (!fileName)
             fileName = 'instrucoes.mif';
-        
-        if(!fileName.includes('.mif'))
+
+        if (!fileName.includes('.mif'))
             fileName += '.mif'
 
         downloadTextFile(Elements.outputEditor.getValue(), fileName)
@@ -326,16 +326,31 @@ function displayCodeError(error) {
     if (error.startPos && error.endPos) {
         Elements.inputEditor.scrollIntoView(error.endPos, 50);
 
-        Elements.outputTextArea.value = `Linha ${error.startPos.line}, coluna ${error.startPos.ch}\n${error.name}`;
-
-        //caso esteja marcando um newline marca a linha toda
-        if (Elements.inputEditor.getLine(error.startPos.line).length == error.startPos.ch) {
-            error.startPos.ch = 0;
+        var fixedStartPos = error.startPos;
+        if (fixedStartPos.ch < 0) {
+            const prevLineLength = Elements.inputEditor.getLine(fixedStartPos.line - 1).length;
+            fixedStartPos.line -= 1;
+            fixedStartPos.ch = prevLineLength + fixedStartPos.ch + 1;
         }
 
-        Elements.inputEditor.markText(error.startPos, error.endPos, {
+        var fixedEndPos = error.endPos;
+        if (fixedEndPos.ch < 0) {
+            const prevLineLength = Elements.inputEditor.getLine(fixedEndPos.line - 1).length;
+            fixedEndPos.line -= 1;
+            fixedEndPos.ch = prevLineLength + fixedEndPos.ch + 1;
+        }
+
+        Elements.outputTextArea.value = `Linha ${fixedStartPos.line}, coluna ${fixedStartPos.ch}\n${error.name}`;
+
+        //caso esteja marcando um newline marca a linha toda
+        const prevLineLength = Elements.inputEditor.getLine(error.startPos.line).length;
+        if (prevLineLength == error.startPos.ch)
+            error.startPos.ch = 0;
+
+        Elements.inputEditor.markText(fixedStartPos, fixedEndPos, {
             className: 'highlighted',
         });
+
     }
     else
         Elements.outputTextArea.value = `${error.name}`;

@@ -25,13 +25,13 @@ const errorTypes = {
 }
 
 class CompilingError extends Error {
-    constructor(errorType, startPos = null, endPos = null, var1 = null, var2 = null) {
+    constructor(errorType, startPos = null, endPos = null, var1 = "", var2 = "") {
         super();
         this.errorType = errorType;
         this.startPos = startPos;
         this.endPos = endPos;
-        this.var1 = var1;
-        this.var2 = var2;
+        this.var1 = var1.replaceAll("\n","¶");
+        this.var2 = var2.replaceAll("\n","¶");
         this.name = this.generateMessage();
     }
 

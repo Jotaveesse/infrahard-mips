@@ -15,6 +15,16 @@
     }
 }
 
+@keyframes clock {
+    from {
+        transform: rotateZ(0deg);
+    }
+
+    to {
+        transform: rotateZ(360deg);
+    }
+}
+
 textarea {
     font-size: 20px;
 }
@@ -44,7 +54,7 @@ h3 {
     line-height: 60px;
 }
 
-.title span{
+.title span {
     padding: 2px 10px;
     background-color: #12151d;
     border-radius: 10px;
@@ -239,9 +249,24 @@ button:hover {
     height: 100%;
     width: 44px;
     margin: 0px 4px;
+    padding: 4px;
     cursor: pointer;
     font-size: 24px;
     font-weight: 1000;
+}
+
+.top-buttons button img {
+    width: 36px;
+    border-radius: 40px;
+    padding: 4px;
+    box-sizing: border-box;
+}
+
+.top-buttons button .rotate {
+    position: absolute;
+    width: 36px;
+    right: 8px;
+    animation: clock 60s steps(60) infinite;
 }
 
 .pop-up {
